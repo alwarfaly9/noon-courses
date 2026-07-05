@@ -1,0 +1,6 @@
+# Never commit the real service account key
+service-account.json
+
+# Track example file only
+!service-account.example.json
+!.gitignore
