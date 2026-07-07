@@ -26,6 +26,7 @@ use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\SuccessStoryController;
+use App\Http\Controllers\StoryApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -150,6 +151,10 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Certificates
         Route::get('courses/{course}/certificate', [\App\Http\Controllers\CertificateController::class, 'getCertificate']);
+
+        // Stories
+        Route::get('stories', [StoryApiController::class, 'index']);
+        Route::post('stories/{story}/view', [StoryApiController::class, 'recordView']);
     });
 
     // Public Certificate Routes (download requires auth; verify is public above)

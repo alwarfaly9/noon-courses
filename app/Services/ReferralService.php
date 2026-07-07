@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Credit;
 use App\Models\Referral;
+use App\Models\ReferralSetting;
 use App\Models\User;
+use App\Services\GamificationService;
 use App\Services\NotificationService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -20,9 +22,6 @@ use Illuminate\Support\Facades\DB;
  */
 class ReferralService
 {
-    // Reward credited to the referrer's wallet when their friend enrolls
-    public const REFERRAL_REWARD = 5.00;
-
     // ── Code management ────────────────────────────────────────────────────────
 
     /** Returns the user's existing code, or generates and saves a new one. */
@@ -94,26 +93,39 @@ class ReferralService
             return;
         }
 
-        DB::transaction(function () use ($referral) {
+        $settings = ReferralSetting::current();
+
+        DB::transaction(function () use ($referral, $settings) {
             $referral->update([
                 'status'        => 'rewarded',
-                'reward_amount' => self::REFERRAL_REWARD,
+                'reward_amount' => $settings->reward_amount,
                 'converted_at'  => now(),
                 'rewarded_at'   => now(),
             ]);
 
-            // Credit referrer's wallet
-            $credit = Credit::firstOrCreate(
-                ['user_id' => $referral->referrer_id],
-                ['balance' => 0]
-            );
-            $credit->increment('balance', self::REFERRAL_REWARD);
+            $rewardAmount = $settings->reward_amount;
+
+            if (in_array($settings->reward_type, ['wallet', 'both'])) {
+                $credit = Credit::firstOrCreate(
+                    ['user_id' => $referral->referrer_id],
+                    ['balance' => 0]
+                );
+                $credit->increment('balance', $rewardAmount);
+            }
+
+            if (in_array($settings->reward_type, ['xp', 'both']) && $settings->xp_reward > 0) {
+                app(GamificationService::class)->awardXp(
+                    User::find($referral->referrer_id),
+                    $settings->xp_reward,
+                    'referral_reward'
+                );
+            }
 
             // Notify referrer
             NotificationService::send(
                 $referral->referrer_id,
                 '🎉 صديقك سجّل في دورة!',
-                'حصلت على ' . self::REFERRAL_REWARD . ' دينار مكافأة إحالة. شكراً لدعوتك أصدقاءك!',
+                'حصلت على ' . $rewardAmount . ' دينار مكافأة إحالة. شكراً لدعوتك أصدقاءك!',
                 'referral',
                 ['action' => 'open_referrals']
             );

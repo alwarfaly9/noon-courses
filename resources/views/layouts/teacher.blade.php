@@ -68,6 +68,23 @@
                         <span class="mr-3">طلبات السحب</span>
                     </a>
                 </li>
+
+                {{-- Engagement --}}
+                <li class="pt-3 border-t border-gray-200">
+                    <div class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">التفاعل</div>
+                </li>
+                <li>
+                    <a href="/teacher/stories" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/stories*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-story w-6"></i>
+                        <span class="mr-3">القصص</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/teacher/challenges" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/challenges*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-fire w-6"></i>
+                        <span class="mr-3">التحديات</span>
+                    </a>
+                </li>
             </ul>
         </aside>
 

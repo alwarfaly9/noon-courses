@@ -191,6 +191,36 @@
                         <span class="mr-3">الشهادات</span>
                     </a>
                 </li>
+
+                {{-- Engagement Platform --}}
+                <li class="pt-3 border-t border-gray-200">
+                    <div class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">التفاعل</div>
+                </li>
+                <li>
+                    <a href="/admin/achievements" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('admin/achievements*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-trophy w-6"></i>
+                        <span class="mr-3">الشارات</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/campaigns" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('admin/campaigns*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-bullhorn w-6"></i>
+                        <span class="mr-3">الحملات</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/stories" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('admin/stories*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-story w-6"></i>
+                        <span class="mr-3">القصص</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/referrals" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('admin/referrals*') ? 'active text-white' : '' }}">
+                        <i class="fas fa-share-alt w-6"></i>
+                        <span class="mr-3">الإحالات</span>
+                    </a>
+                </li>
+
                 <li>
                     <a href="/admin/settings" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('admin/settings*') ? 'active text-white' : '' }}">
                         <i class="fas fa-cog w-6"></i>

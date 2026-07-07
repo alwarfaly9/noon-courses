@@ -9,10 +9,16 @@ use App\Http\Controllers\Admin\TransactionController as AdminTransactionControll
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Admin\SupportController as AdminSupportController;
+use App\Http\Controllers\Admin\AchievementController as AdminAchievementController;
+use App\Http\Controllers\Admin\CampaignController as AdminCampaignController;
+use App\Http\Controllers\Admin\StoryController as AdminStoryController;
+use App\Http\Controllers\Admin\ReferralController as AdminReferralController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Teacher\AuthController as TeacherAuthController;
 use App\Http\Controllers\Teacher\CourseController as TeacherCourseController;
 use App\Http\Controllers\Teacher\WithdrawController as TeacherWithdrawController;
+use App\Http\Controllers\Teacher\StoryController as TeacherStoryController;
+use App\Http\Controllers\Teacher\ChallengeController as TeacherChallengeController;
 
 Route::get('/', function () {
     return redirect('/admin/login');
@@ -81,6 +87,30 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
     Route::post('/withdraw-requests/{id}/approve', [\App\Http\Controllers\Admin\WithdrawRequestController::class, 'approve'])->name('admin.withdraw-requests.approve')->middleware('permission:manage_payments');
     Route::post('/withdraw-requests/{id}/reject', [\App\Http\Controllers\Admin\WithdrawRequestController::class, 'reject'])->name('admin.withdraw-requests.reject')->middleware('permission:manage_payments');
 
+    // ── Engagement — Achievements ──────────────────────────────────────
+    Route::get('/achievements', [AdminAchievementController::class, 'index'])->name('admin.achievements')->middleware('permission:manage_rewards');
+    Route::post('/achievements', [AdminAchievementController::class, 'store'])->middleware('permission:manage_rewards');
+    Route::put('/achievements/{badge}', [AdminAchievementController::class, 'update'])->middleware('permission:manage_rewards');
+    Route::delete('/achievements/{badge}', [AdminAchievementController::class, 'destroy'])->middleware('permission:manage_rewards');
+    Route::get('/achievements/{badge}/users', [AdminAchievementController::class, 'users'])->name('admin.achievements.users')->middleware('permission:manage_rewards');
+
+    // ── Engagement — Campaigns ─────────────────────────────────────────
+    Route::get('/campaigns', [AdminCampaignController::class, 'index'])->name('admin.campaigns.index')->middleware('permission:manage_campaigns');
+    Route::get('/campaigns/create', [AdminCampaignController::class, 'create'])->name('admin.campaigns.create')->middleware('permission:manage_campaigns');
+    Route::post('/campaigns', [AdminCampaignController::class, 'store'])->name('admin.campaigns.store')->middleware('permission:manage_campaigns');
+    Route::get('/campaigns/{campaign}/edit', [AdminCampaignController::class, 'edit'])->name('admin.campaigns.edit')->middleware('permission:manage_campaigns');
+    Route::put('/campaigns/{campaign}', [AdminCampaignController::class, 'update'])->name('admin.campaigns.update')->middleware('permission:manage_campaigns');
+    Route::delete('/campaigns/{campaign}', [AdminCampaignController::class, 'destroy'])->name('admin.campaigns.destroy')->middleware('permission:manage_campaigns');
+
+    // ── Engagement — Stories ───────────────────────────────────────────
+    Route::get('/stories', [AdminStoryController::class, 'index'])->name('admin.stories')->middleware('permission:manage_stories');
+    Route::post('/stories/{story}/toggle', [AdminStoryController::class, 'toggleActive'])->name('admin.stories.toggle')->middleware('permission:manage_stories');
+    Route::delete('/stories/{story}', [AdminStoryController::class, 'destroy'])->name('admin.stories.destroy')->middleware('permission:manage_stories');
+
+    // ── Engagement — Referrals ─────────────────────────────────────────
+    Route::get('/referrals', [AdminReferralController::class, 'index'])->name('admin.referrals')->middleware('permission:manage_rewards');
+    Route::post('/referrals/settings', [AdminReferralController::class, 'updateSettings'])->name('admin.referrals.settings')->middleware('permission:manage_rewards');
+
     // Reports
     Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports')->middleware('permission:view_analytics');
 
@@ -118,6 +148,23 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->group(function (
     // Withdraw Requests
     Route::get('/withdraw-requests', [TeacherWithdrawController::class, 'index'])->name('teacher.withdraw-requests');
     Route::post('/withdraw-requests', [TeacherWithdrawController::class, 'store'])->name('teacher.withdraw-requests.store');
+
+    // ── Engagement — Stories ───────────────────────────────────────────
+    Route::get('/stories', [TeacherStoryController::class, 'index'])->name('teacher.stories.index');
+    Route::get('/stories/create', [TeacherStoryController::class, 'create'])->name('teacher.stories.create');
+    Route::post('/stories', [TeacherStoryController::class, 'store'])->name('teacher.stories.store');
+    Route::get('/stories/{story}/edit', [TeacherStoryController::class, 'edit'])->name('teacher.stories.edit');
+    Route::put('/stories/{story}', [TeacherStoryController::class, 'update'])->name('teacher.stories.update');
+    Route::delete('/stories/{story}', [TeacherStoryController::class, 'destroy'])->name('teacher.stories.destroy');
+
+    // ── Engagement — Challenges ────────────────────────────────────────
+    Route::get('/challenges', [TeacherChallengeController::class, 'index'])->name('teacher.challenges.index');
+    Route::get('/challenges/create', [TeacherChallengeController::class, 'create'])->name('teacher.challenges.create');
+    Route::post('/challenges', [TeacherChallengeController::class, 'store'])->name('teacher.challenges.store');
+    Route::get('/challenges/{challenge}/edit', [TeacherChallengeController::class, 'edit'])->name('teacher.challenges.edit');
+    Route::put('/challenges/{challenge}', [TeacherChallengeController::class, 'update'])->name('teacher.challenges.update');
+    Route::delete('/challenges/{challenge}', [TeacherChallengeController::class, 'destroy'])->name('teacher.challenges.destroy');
+    Route::get('/challenges/{challenge}/participants', [TeacherChallengeController::class, 'participants'])->name('teacher.challenges.participants');
 
     Route::get('/', fn() => redirect()->route('teacher.dashboard'));
 
