@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'force.https' => \App\Http\Middleware\ForceHttps::class,
+            'token.ability' => \App\Http\Middleware\CheckTokenAbility::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('admin.login'));

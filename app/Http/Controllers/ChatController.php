@@ -12,71 +12,56 @@ use Illuminate\Support\Facades\Storage;
 
 class ChatController extends Controller
 {
-    // Get list of conversations for the current user,
-    // with per-conversation unread count derived from last_read_at.
     public function index(Request $request)
     {
         $user = $request->user();
 
-        // 1. Private conversations the user participates in
-        $privateChats = Conversation::where('type', 'private')
-            ->whereHas('participants', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->with([
-                'participants.user:id,name,avatar',
-                'lastMessage',
-            ])
-            ->get();
+        $courseIds = $user->hasRole('teacher')
+            ? $user->coursesAsTeacher()->pluck('id')
+            : $user->enrolledCourses()->pluck('courses.id');
 
-        // 2. Course group chats (enrolled students + their teachers)
-        $courseIds = [];
-        if ($user->hasRole('teacher')) {
-            $courseIds = $user->coursesAsTeacher()->pluck('id')->toArray();
-        } else {
-            $courseIds = $user->enrolledCourses()->pluck('courses.id')->toArray();
-        }
-
-        // Lazy-create group conversations for each course
-        foreach ($courseIds as $courseId) {
+        foreach ($courseIds as $cid) {
             Conversation::firstOrCreate(
-                ['type' => 'course_group', 'course_id' => $courseId],
+                ['type' => 'course_group', 'course_id' => $cid],
                 ['last_message_at' => now()]
             );
         }
 
-        $groupChats = Conversation::where('type', 'course_group')
-            ->whereIn('course_id', $courseIds)
-            ->with([
-                'course:id,title,image',
-                'lastMessage',
-            ])
-            ->get();
+        $conversations = Conversation::where(function ($q) use ($user) {
+            $q->where('type', 'private')
+              ->whereHas('participants', fn($q) => $q->where('user_id', $user->id));
+        })->orWhere(function ($q) use ($courseIds) {
+            $q->where('type', 'course_group')->whereIn('course_id', $courseIds);
+        })
+        ->with([
+            'participants.user:id,name,avatar',
+            'course:id,title,image',
+            'lastMessage',
+        ])
+        ->get();
 
-        // 3. Merge, sort, and annotate with unread count
-        $allChats = $privateChats->merge($groupChats)
-            ->sortByDesc('last_message_at')
-            ->values()
-            ->map(function (Conversation $conv) use ($user) {
-                // Find when this user last read the conversation
-                $participant = ConversationParticipant::where('conversation_id', $conv->id)
-                    ->where('user_id', $user->id)
-                    ->first();
+        $conversationIds = $conversations->pluck('id');
 
-                $lastReadAt = $participant?->last_read_at;
+        $participants = ConversationParticipant::where('user_id', $user->id)
+            ->whereIn('conversation_id', $conversationIds)
+            ->get()
+            ->keyBy('conversation_id');
 
-                $unreadCount = $lastReadAt
-                    ? $conv->messages()
-                        ->where('created_at', '>', $lastReadAt)
-                        ->where('user_id', '!=', $user->id)
-                        ->count()
-                    : $conv->messages()
-                        ->where('user_id', '!=', $user->id)
-                        ->count();
+        $messages = \App\Models\Message::selectRaw('conversation_id, COUNT(*) as total')
+            ->whereIn('conversation_id', $conversationIds)
+            ->where('user_id', '!=', $user->id)
+            ->groupBy('conversation_id')
+            ->get()
+            ->keyBy('conversation_id');
 
-                $conv->setAttribute('unread_count', $unreadCount);
-                return $conv;
-            });
+        $allChats = $conversations->map(function ($conv) use ($participants, $messages) {
+            $participant = $participants->get($conv->id);
+            $lastReadAt = $participant?->last_read_at;
+            $totalUnread = (int) ($messages->get($conv->id)?->total ?? 0);
+
+            $conv->setAttribute('unread_count', $totalUnread);
+            return $conv;
+        })->sortByDesc('last_message_at')->values();
 
         return response()->json([
             'success' => true,

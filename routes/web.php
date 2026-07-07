@@ -36,20 +36,20 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
 
     // Courses Management
     Route::get('/courses', [AdminCourseController::class, 'index'])->name('admin.courses');
-    Route::get('/courses/create', [AdminCourseController::class, 'create'])->name('admin.courses.create');
-    Route::post('/courses', [AdminCourseController::class, 'store'])->name('admin.courses.store');
-    Route::get('/courses/{id}/edit', [AdminCourseController::class, 'edit'])->name('admin.courses.edit');
-    Route::post('/courses/{id}', [AdminCourseController::class, 'update'])->name('admin.courses.update');
+    Route::get('/courses/create', [AdminCourseController::class, 'create'])->name('admin.courses.create')->middleware('permission:manage_courses');
+    Route::post('/courses', [AdminCourseController::class, 'store'])->name('admin.courses.store')->middleware('permission:manage_courses');
+    Route::get('/courses/{id}/edit', [AdminCourseController::class, 'edit'])->name('admin.courses.edit')->middleware('permission:manage_courses');
+    Route::post('/courses/{id}', [AdminCourseController::class, 'update'])->name('admin.courses.update')->middleware('permission:manage_courses');
     Route::post('/courses/{id}/approve', [AdminCourseController::class, 'approve'])->middleware('permission:manage_courses');
     Route::post('/courses/{id}/reject', [AdminCourseController::class, 'reject'])->middleware('permission:manage_courses');
 
     // Course Content Management
-    Route::get('/courses/{id}/content', [AdminCourseContentController::class, 'show'])->name('admin.courses.content');
-    Route::post('/courses/{id}/sections', [AdminCourseContentController::class, 'storeSection'])->name('admin.courses.sections.store');
-    Route::post('/sections/{sectionId}/lessons', [AdminCourseContentController::class, 'storeLesson'])->name('admin.sections.lessons.store');
-    Route::post('/sections/{sectionId}/delete', [AdminCourseContentController::class, 'deleteSection'])->name('admin.sections.delete');
-    Route::post('/lessons/{lessonId}/delete', [AdminCourseContentController::class, 'deleteLesson'])->name('admin.lessons.delete');
-    Route::post('/lessons/{lessonId}/upload', [AdminCourseContentController::class, 'uploadLessonFile'])->name('admin.lessons.upload');
+    Route::get('/courses/{id}/content', [AdminCourseContentController::class, 'show'])->name('admin.courses.content')->middleware('permission:manage_courses');
+    Route::post('/courses/{id}/sections', [AdminCourseContentController::class, 'storeSection'])->name('admin.courses.sections.store')->middleware('permission:manage_courses');
+    Route::post('/sections/{sectionId}/lessons', [AdminCourseContentController::class, 'storeLesson'])->name('admin.sections.lessons.store')->middleware('permission:manage_courses');
+    Route::post('/sections/{sectionId}/delete', [AdminCourseContentController::class, 'deleteSection'])->name('admin.sections.delete')->middleware('permission:manage_courses');
+    Route::post('/lessons/{lessonId}/delete', [AdminCourseContentController::class, 'deleteLesson'])->name('admin.lessons.delete')->middleware('permission:manage_courses');
+    Route::post('/lessons/{lessonId}/upload', [AdminCourseContentController::class, 'uploadLessonFile'])->name('admin.lessons.upload')->middleware('permission:manage_courses');
 
     // Transactions & Credit Cards
     Route::get('/transactions', [AdminTransactionController::class, 'index'])->name('admin.transactions')->middleware('permission:manage_payments');
@@ -57,13 +57,13 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
     Route::post('/credit-cards/generate', [AdminTransactionController::class, 'generateCreditCards'])->middleware('permission:manage_payments');
 
     // Categories
-    Route::get('/categories', [AdminCategoryController::class, 'index'])->name('admin.categories');
+    Route::get('/categories', [AdminCategoryController::class, 'index'])->name('admin.categories')->middleware('permission:manage_categories');
     Route::post('/categories', [AdminCategoryController::class, 'store'])->middleware('permission:manage_categories');
     Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->middleware('permission:manage_categories');
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->middleware('permission:manage_categories');
 
     // Coupons
-    Route::get('/coupons', [AdminCouponController::class, 'index'])->name('admin.coupons');
+    Route::get('/coupons', [AdminCouponController::class, 'index'])->name('admin.coupons')->middleware('permission:manage_coupons');
     Route::post('/coupons', [AdminCouponController::class, 'store'])->middleware('permission:manage_coupons');
 
     // Support
@@ -73,8 +73,8 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
     Route::get('/certificates', [\App\Http\Controllers\Admin\CertificateController::class, 'index'])->name('admin.certificates');
 
     // Platform Settings
-    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
-    Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
+    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings')->middleware('permission:manage_settings');
+    Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update')->middleware('permission:manage_settings');
 
     // Withdraw Requests
     Route::get('/withdraw-requests', [\App\Http\Controllers\Admin\WithdrawRequestController::class, 'index'])->name('admin.withdraw-requests')->middleware('permission:manage_payments');
@@ -82,7 +82,7 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
     Route::post('/withdraw-requests/{id}/reject', [\App\Http\Controllers\Admin\WithdrawRequestController::class, 'reject'])->name('admin.withdraw-requests.reject')->middleware('permission:manage_payments');
 
     // Reports
-    Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports');
+    Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports')->middleware('permission:view_analytics');
 
     // Logout
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
@@ -112,12 +112,18 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->group(function (
     Route::post('/lessons/{lessonId}/delete', [TeacherCourseController::class, 'deleteLesson'])->name('teacher.lessons.delete');
     Route::post('/lessons/{lessonId}/upload', [TeacherCourseController::class, 'uploadLesson'])->name('teacher.lessons.upload');
 
+    // Certificates
+    Route::get('/certificates', [TeacherCourseController::class, 'certificates'])->name('teacher.certificates');
+
     // Withdraw Requests
     Route::get('/withdraw-requests', [TeacherWithdrawController::class, 'index'])->name('teacher.withdraw-requests');
     Route::post('/withdraw-requests', [TeacherWithdrawController::class, 'store'])->name('teacher.withdraw-requests.store');
 
     Route::get('/', fn() => redirect()->route('teacher.dashboard'));
 
-    // Logout
+        // Logout
     Route::post('/logout', [TeacherAuthController::class, 'logout'])->name('teacher.logout');
 });
+
+// Certificate verification (public, used in teacher/admin views)
+Route::get('/certificates/verify/{id}', [\App\Http\Controllers\CertificateController::class, 'verify'])->name('certificates.verify');

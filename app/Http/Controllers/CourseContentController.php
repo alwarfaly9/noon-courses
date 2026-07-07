@@ -298,8 +298,11 @@ class CourseContentController extends Controller
 
     private function updateCourseStats(Course $course)
     {
-        $lecturesCount = $course->lessons()->count();
-        $totalDuration = $course->lessons()->sum('duration'); // in seconds
+        $stats = $course->lessons()
+            ->selectRaw('COUNT(*) as lectures_count, COALESCE(SUM(duration), 0) as total_duration')
+            ->first();
+        $lecturesCount = $stats->lectures_count;
+        $totalDuration = $stats->total_duration;
 
         // Convert seconds to formatted string if needed, but storing seconds is better for calculation
         // Assuming 'duration' in Course model is string (e.g. "10h 30m") or integer (seconds)

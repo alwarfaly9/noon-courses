@@ -145,11 +145,9 @@ class StudentProgressController extends Controller
 
         $service = app(LearningPathService::class);
 
-        foreach ($pathIds as $pathId) {
-            $path = \App\Models\LearningPath::find($pathId);
-            if ($path) {
-                $service->recalculateProgress($user, $path);
-            }
+        $paths = \App\Models\LearningPath::whereIn('id', $pathIds)->get();
+        foreach ($paths as $path) {
+            $service->recalculateProgress($user, $path);
         }
     }
 }

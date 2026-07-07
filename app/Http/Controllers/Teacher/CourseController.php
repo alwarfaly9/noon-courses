@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\CourseLesson;
 use App\Models\CourseSection;
+use App\Models\Transaction;
+use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -28,10 +32,9 @@ class CourseController extends Controller
         $publishedCourses = Course::where('teacher_id', $teacherId)->where('status', 'published')->count();
         $pendingCourses   = Course::where('teacher_id', $teacherId)->where('status', 'pending')->count();
         $totalStudents    = CourseEnrollment::whereIn('course_id', $courseIds)->count();
-        $totalEarnings    = CourseEnrollment::whereIn('course_id', $courseIds)
-                                ->where('status', 'active')
-                                ->join('courses', 'course_enrollments.course_id', '=', 'courses.id')
-                                ->sum('courses.price');
+        $totalEarnings    = Transaction::where('status', 'completed')
+                                ->whereHas('course', fn($q) => $q->where('teacher_id', $teacherId))
+                                ->sum('instructor_earnings');
 
         $recentEnrollments = CourseEnrollment::with(['student', 'course'])
             ->whereIn('course_id', $courseIds)
@@ -39,9 +42,29 @@ class CourseController extends Controller
             ->take(10)
             ->get();
 
+        // Course review stats
+        $avgRating = Course::where('teacher_id', $teacherId)
+            ->where('status', 'published')
+            ->avg('rating');
+
+        // Monthly earnings chart (last 6 months)
+        $earningsData = Transaction::selectRaw(
+                "DATE_FORMAT(created_at, '%Y-%m') as month, SUM(instructor_earnings) as total"
+            )
+            ->where('status', 'completed')
+            ->whereHas('course', fn($q) => $q->where('teacher_id', $teacherId))
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+            ->orderBy('month')
+            ->get();
+
+        // Certificates issued for courses
+        $certificatesCount = Certificate::whereIn('course_id', $courseIds)->count();
+
         return view('teacher.dashboard', compact(
             'totalCourses', 'publishedCourses', 'pendingCourses',
-            'totalStudents', 'totalEarnings', 'recentEnrollments'
+            'totalStudents', 'totalEarnings', 'recentEnrollments',
+            'avgRating', 'earningsData', 'certificatesCount'
         ));
     }
 
@@ -132,7 +155,7 @@ class CourseController extends Controller
             $course->status = 'pending';
         }
 
-        $data = $request->validate([
+        $rules = [
             'title'             => 'required|string|max:255',
             'category_id'       => 'required|exists:categories,id',
             'description'       => 'required|string',
@@ -143,8 +166,9 @@ class CourseController extends Controller
             'learn_text'        => 'nullable|string',
             'level'             => 'required|in:beginner,intermediate,advanced',
             'language'          => 'required|in:ar,en',
-            'image'             => 'nullable|image|max:2048',
-        ]);
+        ];
+        $rules = array_merge($rules, FileUploadService::getImageValidationRules());
+        $data = $request->validate($rules);
 
         if ($request->hasFile('image')) {
             if ($course->image) {
@@ -174,6 +198,17 @@ class CourseController extends Controller
     /**
      * Soft-delete a course (only if not published).
      */
+    public function certificates()
+    {
+        $courseIds = Course::where('teacher_id', Auth::id())->pluck('id');
+        $certificates = Certificate::with(['user', 'course'])
+            ->whereIn('course_id', $courseIds)
+            ->latest()
+            ->paginate(20);
+
+        return view('teacher.certificates', compact('certificates'));
+    }
+
     public function destroy($id)
     {
         $course = Course::where('teacher_id', Auth::id())->findOrFail($id);
@@ -231,13 +266,13 @@ class CourseController extends Controller
         $section = CourseSection::findOrFail($sectionId);
         Course::where('teacher_id', Auth::id())->findOrFail($section->course_id);
 
-        $data = $request->validate([
+        $rules = [
             'title'         => 'required|string|max:255',
             'description'   => 'nullable|string',
             'duration_text' => 'nullable|string',
-            'video_file'    => 'nullable|file|mimes:mp4,mov,mkv,avi,webm|max:512000',
-            'subtitle_file' => 'nullable|file|mimes:vtt,srt,txt|max:10240',
-        ]);
+        ];
+        $rules = array_merge($rules, FileUploadService::getLessonValidationRules());
+        $data = $request->validate($rules);
 
         $durationSeconds = $this->parseDuration($data['duration_text'] ?? null);
         $nextOrder = (int)($section->lessons()->max('order') ?? 0) + 1;
@@ -267,10 +302,7 @@ class CourseController extends Controller
         $lesson = CourseLesson::with('section.course')->findOrFail($lessonId);
         Course::where('teacher_id', Auth::id())->findOrFail($lesson->course_id);
 
-        $request->validate([
-            'file'     => 'nullable|file|mimes:mp4,mov,mkv,avi,webm,mp3,pdf,doc,docx,ppt,pptx,zip,rar|max:512000',
-            'subtitle' => 'nullable|file|mimes:vtt,srt,txt|max:10240',
-        ]);
+        $request->validate(FileUploadService::getLessonValidationRules());
 
         $this->handleLessonUpload($request, $lesson);
         return back()->with('success', 'تم رفع الملف');

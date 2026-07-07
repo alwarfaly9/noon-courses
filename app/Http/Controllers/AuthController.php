@@ -10,6 +10,7 @@ use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -43,8 +44,7 @@ class AuthController extends Controller
         }
 
         Log::info('[Register] Starting user creation', [
-            'email' => $email,
-            'ip'    => $request->ip(),
+            'ip' => $request->ip(),
         ]);
 
         $user = (new User())->forceFill([
@@ -62,10 +62,7 @@ class AuthController extends Controller
         Cache::forget($verifiedKey);
 
         Log::info('[Register] User created', [
-            'id'                => $user->id,
-            'email'             => $user->email,
-            'is_active'         => $user->is_active,
-            'email_verified_at' => $user->email_verified_at,
+            'id' => $user->id,
         ]);
 
         // Assign student role via Spatie
@@ -93,7 +90,7 @@ class AuthController extends Controller
             app(ReferralService::class)->trackRegistration($user, $request->referral_code);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $tokenPair = app(AuthService::class)->createTokenPair($user);
 
         $userData = $user->load('roles')->toArray();
         $userData['wallet_balance'] = 0;
@@ -104,9 +101,11 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'User registered successfully',
             'data' => [
-                'user'         => $userData,
-                'access_token' => $token,
-                'token_type'   => 'Bearer',
+                'user'          => $userData,
+                'access_token'  => $tokenPair['access_token'],
+                'refresh_token' => $tokenPair['refresh_token'],
+                'token_type'    => $tokenPair['token_type'],
+                'expires_in'    => $tokenPair['expires_in'],
             ]
         ], 201);
     }
@@ -114,35 +113,18 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         $email    = strtolower(trim($request->email));
-        $password = $request->password; // do NOT trim — user chose their password
+        $password = $request->password;
 
         Log::info('[Login] Attempt', [
-            'email' => $email,
-            'ip'    => $request->ip(),
+            'ip' => $request->ip(),
         ]);
 
-        // Look up user explicitly — avoids Auth::attempt() starting a web session
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
-            Log::warning('[Login] User not found', ['email' => $email]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials',
-            ], 401);
-        }
-
-        Log::info('[Login] User found', [
-            'id'                => $user->id,
-            'is_active'         => $user->is_active,
-            'deleted_at'        => $user->deleted_at,
-            'password_algo'     => substr($user->password, 0, 7),
-            'email_verified_at' => $user->email_verified_at,
-        ]);
-
-        if (!$user->is_active) {
-            Log::warning('[Login] Account disabled', ['user_id' => $user->id]);
-            // Return 401 (not 403) to avoid confirming account existence to attackers
+        if (!$user || !$user->is_active) {
+            if ($user) {
+                Log::warning('[Login] Account disabled', ['user_id' => $user->id]);
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
@@ -150,11 +132,7 @@ class AuthController extends Controller
         }
 
         if (!Hash::check($password, $user->password)) {
-            Log::warning('[Login] Password mismatch', [
-                'user_id'           => $user->id,
-                'provided_length'   => strlen($password),
-                'stored_algo'       => substr($user->password, 0, 7),
-            ]);
+            Log::warning('[Login] Password mismatch', ['user_id' => $user->id]);
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
@@ -181,7 +159,8 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $deviceName = $request->input('device_name', $request->userAgent() ?? 'default');
+        $tokenPair = app(AuthService::class)->createTokenPair($user, $deviceName);
 
         $userData = $user->load('roles', 'credits')->toArray();
         $userData['wallet_balance'] = $user->credits ? $user->credits->balance : 0;
@@ -190,23 +169,37 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user' => $userData,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
+                'user'          => $userData,
+                'access_token'  => $tokenPair['access_token'],
+                'refresh_token' => $tokenPair['refresh_token'],
+                'token_type'    => $tokenPair['token_type'],
+                'expires_in'    => $tokenPair['expires_in'],
             ]
         ]);
     }
 
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+        $token = $request->user()->currentAccessToken();
+
+        $deviceName = 'unknown';
+        if ($token) {
+            $deviceName = self::extractDeviceName($token->name);
+            $token->delete();
+        }
+
+        // Also revoke associated refresh token for this device
+        $request->user()->tokens()
+            ->where('name', 'LIKE', $deviceName . '_refresh_%')
+            ->where('id', '!=', $token?->id)
+            ->delete();
 
         ActivityLog::create([
             'user_id' => $request->user()->id,
             'action' => 'logout',
             'model_type' => 'User',
             'model_id' => $request->user()->id,
-            'description' => 'User logged out',
+            'description' => 'User logged out from device: ' . $deviceName,
             'ip_address' => $request->ip(),
         ]);
 
@@ -219,18 +212,39 @@ class AuthController extends Controller
     public function refresh(Request $request)
     {
         $user = $request->user();
+        $currentToken = $request->user()->currentAccessToken();
 
-        // Revoke current token and issue a fresh one
-        $request->user()->currentAccessToken()->delete();
-        $newToken = $user->createToken('auth_token')->plainTextToken;
+        $deviceName = 'default';
+        if ($currentToken) {
+            $deviceName = self::extractDeviceName($currentToken->name);
+        }
+
+        $tokenPair = app(AuthService::class)->createTokenPair($user, $deviceName);
+
+        if ($currentToken) {
+            $currentToken->delete();
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'access_token' => $newToken,
-                'token_type' => 'Bearer',
+                'access_token'  => $tokenPair['access_token'],
+                'refresh_token' => $tokenPair['refresh_token'],
+                'token_type'    => $tokenPair['token_type'],
+                'expires_in'    => $tokenPair['expires_in'],
             ]
         ]);
+    }
+
+    private static function extractDeviceName(string $tokenName): string
+    {
+        foreach (['_access_', '_refresh_'] as $suffix) {
+            $pos = strpos($tokenName, $suffix);
+            if ($pos !== false) {
+                return substr($tokenName, 0, $pos);
+            }
+        }
+        return $tokenName;
     }
 
     public function user(Request $request)
@@ -273,21 +287,29 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'البريد الإلكتروني غير موجود',
+                'message' => 'البريد الإلكتروني غير صالح',
                 'errors' => $validator->errors(),
             ], 422);
         }
 
         $email = $request->email;
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => true,
+                'message' => 'إذا كان البريد الإلكتروني مسجلاً، سيتم إرسال رمز إعادة التعيين',
+            ]);
+        }
+
         $code = (string) random_int(100000, 999999);
 
-        // Store hashed code in password_reset_tokens (expires in 15 min)
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $email],
             ['token' => Hash::make($code), 'created_at' => now()]
@@ -296,23 +318,19 @@ class AuthController extends Controller
         try {
             Mail::to($email)->send(new PasswordResetMail($code));
         } catch (\Exception $e) {
-            Log::error('[PasswordReset] Failed to send email to ' . $email . ': ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'فشل إرسال البريد الإلكتروني، يرجى المحاولة لاحقاً',
-            ], 500);
+            Log::error('[PasswordReset] Failed to send email: ' . $e->getMessage());
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+            'message' => 'إذا كان البريد الإلكتروني مسجلاً، سيتم إرسال رمز إعادة التعيين',
         ]);
     }
 
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'                 => 'required|email|exists:users,email',
+            'email'                 => 'required|email',
             'code'                  => 'required|string|size:6',
             'password'              => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string',
@@ -333,17 +351,16 @@ class AuthController extends Controller
         if (!$record) {
             return response()->json([
                 'success' => false,
-                'message' => 'الرمز غير موجود أو منتهي الصلاحية',
-            ], 404);
+                'message' => 'الرمز غير صحيح',
+            ], 400);
         }
 
-        // Expire after 15 minutes
         if (now()->diffInMinutes($record->created_at) > 15) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return response()->json([
                 'success' => false,
-                'message' => 'انتهت صلاحية الرمز، يرجى طلب رمز جديد',
-            ], 410);
+                'message' => 'الرمز غير صحيح',
+            ], 400);
         }
 
         if (!Hash::check($request->code, $record->token)) {
@@ -353,8 +370,15 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Update password and revoke all tokens for security
         $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'الرمز غير صحيح',
+            ], 400);
+        }
+
         $user->update(['password' => $request->password]);
         $user->tokens()->delete();
 

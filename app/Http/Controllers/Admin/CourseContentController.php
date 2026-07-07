@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseLesson;
 use App\Models\CourseSection;
 use App\Models\Course;
+use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,13 +49,13 @@ class CourseContentController extends Controller
     public function storeLesson(Request $request, $sectionId)
     {
         $section = CourseSection::findOrFail($sectionId);
-        $data = $request->validate([
+        $rules = [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'duration_text' => 'nullable|string',
-            'video_file' => 'nullable|file|mimes:mp4,mov,mkv,avi,webm|max:512000',
-            'subtitle_file' => 'nullable|file|mimes:vtt,srt,txt|max:10240',
-        ]);
+        ];
+        $rules = array_merge($rules, FileUploadService::getLessonValidationRules());
+        $data = $request->validate($rules);
 
         $durationSeconds = $this->parseDuration($data['duration_text'] ?? null);
 
@@ -96,10 +97,7 @@ class CourseContentController extends Controller
     public function uploadLessonFile(Request $request, $lessonId)
     {
         $lesson = CourseLesson::with('course')->findOrFail($lessonId);
-        $request->validate([
-            'file' => 'nullable|file|mimes:mp4,mov,mkv,avi,webm,mp3,pdf,doc,docx,ppt,pptx,zip,rar|max:512000',
-            'subtitle' => 'nullable|file|mimes:vtt,srt,txt|max:10240',
-        ]);
+        $request->validate(FileUploadService::getLessonValidationRules());
 
         $disk = Storage::disk('private');
         $folder = 'courses/' . $lesson->course_id . '/lessons/' . $lesson->id;

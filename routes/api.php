@@ -88,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('user', [AuthController::class, 'user']);
-        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::post('refresh', [AuthController::class, 'refresh'])->middleware('token.ability:refresh,access');
         Route::post('update-profile', [AuthController::class, 'updateProfile']);
     });
 
