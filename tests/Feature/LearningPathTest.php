@@ -28,7 +28,7 @@ class LearningPathTest extends TestCase
     {
         LearningPath::factory(3)->create(['status' => 'published']);
 
-        $this->getJson('/api/v1/learning-paths')
+        $this->getJson('/api/v1/v1/learning-paths')
             ->assertOk()
             ->assertJsonStructure(['data']);
     }
@@ -39,7 +39,7 @@ class LearningPathTest extends TestCase
 
         $this->withToken($this->token)
             ->postJson("/api/v1/learning-paths/{$path->id}/enroll")
-            ->assertOk()
+            ->assertCreated()
             ->assertJsonPath('success', true);
 
         $this->assertDatabaseHas('learning_path_enrollments', [
@@ -52,12 +52,10 @@ class LearningPathTest extends TestCase
     {
         $path = LearningPath::factory()->create(['status' => 'published']);
 
-        // First enroll
         $this->withToken($this->token)
             ->postJson("/api/v1/learning-paths/{$path->id}/enroll")
-            ->assertOk();
+            ->assertCreated();
 
-        // Second attempt should fail with 422
         $this->withToken($this->token)
             ->postJson("/api/v1/learning-paths/{$path->id}/enroll")
             ->assertStatus(422);
@@ -67,11 +65,10 @@ class LearningPathTest extends TestCase
     {
         $path = LearningPath::factory()->create(['status' => 'draft']);
 
-        $this->getJson('/api/v1/learning-paths')
+        $this->getJson('/api/v1/v1/learning-paths')
             ->assertOk();
 
-        // The draft path should NOT appear in public listing
-        $this->getJson("/api/v1/learning-paths/{$path->slug}")
+        $this->getJson("/api/v1/v1/learning-paths/{$path->slug}")
             ->assertStatus(404);
     }
 

@@ -3,12 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
-use App\Models\CourseEnrollment;
 use App\Models\User;
 use App\Models\UserStats;
 use App\Services\GamificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class GamificationTest extends TestCase
@@ -22,8 +20,6 @@ class GamificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
 
         $this->student      = User::factory()->create();
         $this->student->assignRole('student');
@@ -57,7 +53,6 @@ class GamificationTest extends TestCase
 
     public function test_awarding_xp_increases_level_when_threshold_reached(): void
     {
-        // Level 2 requires 500 XP
         $this->gamification->awardXp($this->student, 500, 'test');
 
         $stats = UserStats::where('user_id', $this->student->id)->first();
@@ -69,15 +64,16 @@ class GamificationTest extends TestCase
         $this->gamification->onLessonCompleted($this->student);
 
         $stats = UserStats::where('user_id', $this->student->id)->first();
-        $this->assertGreaterThanOrEqual(GamificationService::XP_LESSON, $stats->xp_total);
+        $this->assertGreaterThanOrEqual(GamificationService::XP_LESSON_COMPLETE, $stats->xp_total);
     }
 
     public function test_course_completed_awards_higher_xp(): void
     {
-        $this->gamification->onCourseCompleted($this->student);
+        $course = Course::factory()->create();
+        $this->gamification->onCourseCompleted($this->student, $course);
 
         $stats = UserStats::where('user_id', $this->student->id)->first();
-        $this->assertGreaterThanOrEqual(GamificationService::XP_COURSE, $stats->xp_total);
+        $this->assertGreaterThanOrEqual(GamificationService::XP_COURSE_COMPLETE, $stats->xp_total);
     }
 
     public function test_streak_increments_on_daily_activity(): void
@@ -90,12 +86,10 @@ class GamificationTest extends TestCase
 
     public function test_leaderboard_endpoint_is_cached(): void
     {
-        // First hit populates cache
         $this->withToken($this->token)
             ->getJson('/api/v1/gamification/leaderboard')
             ->assertOk();
 
-        // Second hit should serve from cache (same result)
         $this->withToken($this->token)
             ->getJson('/api/v1/gamification/leaderboard')
             ->assertOk()

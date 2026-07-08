@@ -6,8 +6,6 @@ use App\Models\Course;
 use App\Models\Credit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class EnrollmentTest extends TestCase
@@ -21,10 +19,6 @@ class EnrollmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Create roles
-        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
 
         $this->teacher = User::factory()->create(['is_active' => true]);
         $this->teacher->assignRole('teacher');
@@ -54,7 +48,6 @@ class EnrollmentTest extends TestCase
             'course_id' => $this->course->id,
         ]);
 
-        // Check balance was deducted
         $this->assertEquals(50, $this->student->credits->fresh()->balance);
     }
 
@@ -75,11 +68,9 @@ class EnrollmentTest extends TestCase
 
     public function test_student_cannot_enroll_twice(): void
     {
-        // First enrollment
         $this->actingAs($this->student, 'sanctum')
             ->postJson("/api/v1/student/courses/{$this->course->id}/enroll");
 
-        // Second enrollment attempt
         $response = $this->actingAs($this->student, 'sanctum')
             ->postJson("/api/v1/student/courses/{$this->course->id}/enroll");
 

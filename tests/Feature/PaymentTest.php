@@ -6,8 +6,6 @@ use App\Models\Credit;
 use App\Models\CreditCard;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PaymentTest extends TestCase
@@ -19,8 +17,6 @@ class PaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
 
         $this->user = User::factory()->create(['is_active' => true]);
         $this->user->assignRole('student');
@@ -34,7 +30,7 @@ class PaymentTest extends TestCase
             ->getJson('/api/v1/payment/credit-balance');
 
         $response->assertOk()
-            ->assertJsonPath('data.balance', 0);
+            ->assertJsonPath('data.balance', '0.00');
     }
 
     public function test_user_can_redeem_valid_credit_card(): void

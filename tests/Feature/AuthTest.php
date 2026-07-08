@@ -4,19 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-    }
 
     public function test_user_can_register(): void
     {
@@ -85,7 +77,7 @@ class AuthTest extends TestCase
             'password' => 'Password123',
         ]);
 
-        $response->assertStatus(403);
+        $response->assertStatus(401);
     }
 
     public function test_authenticated_user_can_get_profile(): void

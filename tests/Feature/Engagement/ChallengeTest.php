@@ -56,8 +56,7 @@ class ChallengeTest extends TestCase
         $response = $this->actingAs($this->student)
             ->postJson("/api/v1/campaigns/{$campaign->id}/join");
 
-        $response->assertOk();
-        $this->assertEquals('Already participating', $response->json('message'));
+        $response->assertStatus(422);
     }
 
     public function test_active_challenges_appear_in_list(): void

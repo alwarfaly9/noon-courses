@@ -3,10 +3,12 @@
 namespace Tests\Unit;
 
 use App\Services\CommissionService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class CommissionServiceTest extends TestCase
 {
+    use RefreshDatabase;
     public function test_calculate_split_default_rate(): void
     {
         $split = CommissionService::calculateSplit(100);

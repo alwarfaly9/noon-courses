@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LessonComment extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     /** User-controlled fields. is_approved/is_pinned/reported_count set via forceFill in moderation code. */
     protected $fillable = [

@@ -38,14 +38,24 @@ class CampaignController extends Controller
             return response()->json(['success' => false, 'message' => 'Campaign is not active'], 422);
         }
 
-        $participation = CampaignParticipation::firstOrCreate([
+        $existing = CampaignParticipation::where([
             'campaign_id' => $campaign->id,
             'user_id'     => $request->user()->id,
-        ], ['progress' => 0, 'completed' => false]);
+        ])->first();
+
+        if ($existing) {
+            return response()->json(['success' => false, 'message' => 'Already participating in this campaign'], 422);
+        }
+
+        $participation = CampaignParticipation::create([
+            'campaign_id' => $campaign->id,
+            'user_id'     => $request->user()->id,
+            'progress'    => 0,
+            'completed'   => false,
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => $participation->wasRecentlyCreated ? 'Joined campaign' : 'Already participating',
             'data'    => $participation,
         ]);
     }

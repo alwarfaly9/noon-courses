@@ -40,7 +40,9 @@ class UserNotificationPreference extends Model
     /** Returns (or creates with defaults) prefs for a user. */
     public static function forUser(int $userId): self
     {
-        return self::firstOrCreate(['user_id' => $userId]);
+        $prefs = self::firstOrCreate(['user_id' => $userId]);
+
+        return $prefs->wasRecentlyCreated ? $prefs->fresh() : $prefs;
     }
 
     /**

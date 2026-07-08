@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SuccessStory extends Model
 {
+    use HasFactory;
     /** User-controlled fields only. is_approved/is_featured set via forceFill in admin code. */
     protected $fillable = [
         'user_id', 'title', 'body',

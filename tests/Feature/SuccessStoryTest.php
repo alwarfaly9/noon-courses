@@ -43,7 +43,7 @@ class SuccessStoryTest extends TestCase
 
     public function test_admin_can_approve_story(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = $this->createUserWithRole('admin');
         $story = SuccessStory::factory()->create(['is_approved' => false]);
 
         $response = $this->actingAs($admin)
