@@ -19,6 +19,8 @@ use App\Http\Controllers\Teacher\CourseController as TeacherCourseController;
 use App\Http\Controllers\Teacher\WithdrawController as TeacherWithdrawController;
 use App\Http\Controllers\Teacher\StoryController as TeacherStoryController;
 use App\Http\Controllers\Teacher\ChallengeController as TeacherChallengeController;
+use App\Http\Controllers\Teacher\QuizController as TeacherQuizController;
+use App\Http\Controllers\Teacher\AnalyticsController as TeacherAnalyticsController;
 
 Route::get('/', function () {
     return redirect('/admin/login');
@@ -165,6 +167,21 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->group(function (
     Route::put('/challenges/{challenge}', [TeacherChallengeController::class, 'update'])->name('teacher.challenges.update');
     Route::delete('/challenges/{challenge}', [TeacherChallengeController::class, 'destroy'])->name('teacher.challenges.destroy');
     Route::get('/challenges/{challenge}/participants', [TeacherChallengeController::class, 'participants'])->name('teacher.challenges.participants');
+
+    // ── Quizzes ────────────────────────────────────────────────────────────
+    Route::get('/courses/{course}/quizzes', [TeacherQuizController::class, 'index'])->name('teacher.quizzes.index');
+    Route::get('/courses/{course}/quizzes/create', [TeacherQuizController::class, 'create'])->name('teacher.quizzes.create');
+    Route::post('/courses/{course}/quizzes', [TeacherQuizController::class, 'store'])->name('teacher.quizzes.store');
+    Route::get('/quizzes/{quiz}/edit', [TeacherQuizController::class, 'edit'])->name('teacher.quizzes.edit');
+    Route::put('/quizzes/{quiz}', [TeacherQuizController::class, 'update'])->name('teacher.quizzes.update');
+    Route::delete('/quizzes/{quiz}', [TeacherQuizController::class, 'destroy'])->name('teacher.quizzes.destroy');
+    Route::get('/quizzes/{quiz}/stats', [TeacherQuizController::class, 'stats'])->name('teacher.quizzes.stats');
+    Route::post('/quizzes/{quiz}/questions', [TeacherQuizController::class, 'storeQuestion'])->name('teacher.quizzes.questions.store');
+    Route::put('/questions/{question}', [TeacherQuizController::class, 'updateQuestion'])->name('teacher.quizzes.questions.update');
+    Route::delete('/questions/{question}', [TeacherQuizController::class, 'destroyQuestion'])->name('teacher.quizzes.questions.destroy');
+
+    // ── Analytics ────────────────────────────────────────────────────────────
+    Route::get('/analytics', [TeacherAnalyticsController::class, 'index'])->name('teacher.analytics');
 
     Route::get('/', fn() => redirect()->route('teacher.dashboard'));
 

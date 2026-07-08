@@ -4,59 +4,38 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="welcome-header">
+            مرحباً، {{ Auth::user()->name }}
+            <span class="welcome-subtitle">نظرة عامة على المنصة</span>
+        </h1>
+    </div>
+
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="stat-card text-white p-6 rounded-lg shadow-lg card">
-            <div class="flex items-center justify-between">
-                <div>
-                    @if(Auth::user()->hasRole('admin'))
-                        <div class="text-sm opacity-90 mb-1"><i class="fas fa-users"></i> إجمالي المستخدمين</div>
-                        <div class="text-3xl font-bold">{{ $stats['total_users'] }}</div>
-                    @else
-                        <div class="text-sm opacity-90 mb-1"><i class="fas fa-users"></i> إجمالي الطلاب</div>
-                        <div class="text-3xl font-bold">{{ $stats['total_students'] ?? 0 }}</div>
-                    @endif
-                </div>
-                <div class="text-5xl opacity-20">
-                    <i class="fas fa-users"></i>
-                </div>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="stat-card-gradient-primary">
+            <div class="stat-label"><i class="fas fa-users"></i> {{ Auth::user()->hasRole('admin') ? 'إجمالي المستخدمين' : 'إجمالي الطلاب' }}</div>
+            <div class="stat-value">{{ Auth::user()->hasRole('admin') ? $stats['total_users'] : ($stats['total_students'] ?? 0) }}</div>
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
         </div>
         
-        <div class="stat-card-blue text-white p-6 rounded-lg shadow-lg card">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-sm opacity-90 mb-1"><i class="fas fa-book"></i> {{ Auth::user()->hasRole('admin') ? 'الدورات المنشورة' : 'دوراتي المنشورة' }}</div>
-                    <div class="text-3xl font-bold">{{ $stats['published_courses'] }}</div>
-                </div>
-                <div class="text-5xl opacity-20">
-                    <i class="fas fa-book"></i>
-                </div>
-            </div>
+        <div class="stat-card-gradient-blue">
+            <div class="stat-label"><i class="fas fa-book"></i> {{ Auth::user()->hasRole('admin') ? 'الدورات المنشورة' : 'دوراتي المنشورة' }}</div>
+            <div class="stat-value">{{ $stats['published_courses'] }}</div>
+            <div class="stat-icon"><i class="fas fa-book"></i></div>
         </div>
         
-        <div class="stat-card-orange text-white p-6 rounded-lg shadow-lg card">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-sm opacity-90 mb-1"><i class="fas fa-clock"></i> {{ Auth::user()->hasRole('admin') ? 'الدورات قيد المراجعة' : 'دوراتي قيد المراجعة' }}</div>
-                    <div class="text-3xl font-bold">{{ $stats['pending_courses'] }}</div>
-                </div>
-                <div class="text-5xl opacity-20">
-                    <i class="fas fa-clock"></i>
-                </div>
-            </div>
+        <div class="stat-card-gradient-orange">
+            <div class="stat-label"><i class="fas fa-clock"></i> {{ Auth::user()->hasRole('admin') ? 'الدورات قيد المراجعة' : 'دوراتي قيد المراجعة' }}</div>
+            <div class="stat-value">{{ $stats['pending_courses'] }}</div>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
         </div>
         
-        <div class="stat-card-purple text-white p-6 rounded-lg shadow-lg card">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-sm opacity-90 mb-1"><i class="fas fa-money-bill-wave"></i> {{ Auth::user()->hasRole('admin') ? 'إجمالي الإيرادات' : 'إجمالي الأرباح' }}</div>
-                    <div class="text-3xl font-bold">{{ number_format($stats[Auth::user()->hasRole('admin') ? 'total_revenue' : 'total_earnings'] ?? 0, 0) }} د.ل</div>
-                </div>
-                <div class="text-5xl opacity-20">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-            </div>
+        <div class="stat-card-gradient-purple">
+            <div class="stat-label"><i class="fas fa-money-bill-wave"></i> {{ Auth::user()->hasRole('admin') ? 'إجمالي الإيرادات' : 'إجمالي الأرباح' }}</div>
+            <div class="stat-value">{{ number_format($stats[Auth::user()->hasRole('admin') ? 'total_revenue' : 'total_earnings'] ?? 0, 0) }} د.ل</div>
+            <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
         </div>
     </div>
 
@@ -64,24 +43,32 @@
     <!-- Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Revenue Chart -->
-        <div class="bg-white rounded-lg shadow-lg p-6 card">
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fas fa-chart-line text-green-600 mr-2"></i>
-                الإيرادات الشهرية
-            </h3>
-            <div class="relative h-72">
-                <canvas id="revenueChart" class="w-full h-full"></canvas>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-chart-line text-emerald-500"></i>
+                    الإيرادات الشهرية
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="relative" style="height: 280px;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
             </div>
         </div>
 
         <!-- User Growth Chart -->
-        <div class="bg-white rounded-lg shadow-lg p-6 card">
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fas fa-chart-area text-green-600 mr-2"></i>
-                نمو المستخدمين
-            </h3>
-            <div class="relative h-72">
-                <canvas id="userChart" class="w-full h-full"></canvas>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-chart-bar text-blue-500"></i>
+                    نمو المستخدمين
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="relative" style="height: 280px;">
+                    <canvas id="userChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -91,120 +78,207 @@
     <div class="grid grid-cols-1 {{ Auth::user()->hasRole('admin') ? 'lg:grid-cols-2' : '' }} gap-6">
         @if(Auth::user()->hasRole('admin'))
         <!-- Recent Transactions -->
-        <div class="bg-white rounded-lg shadow-lg p-6 card">
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fas fa-exchange-alt text-green-600 mr-2"></i>
-                آخر المعاملات
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المستخدم</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المبلغ</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($recentTransactions as $transaction)
-                        <tr>
-                            <td class="px-4 py-3 text-sm">{{ $transaction->user->name }}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-green-600">{{ $transaction->amount }} د.ل</td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 rounded text-xs font-semibold {{ $transaction->status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                    <i class="fas fa-{{ $transaction->status === 'completed' ? 'check' : 'clock' }} mr-1"></i>
-                                    {{ $transaction->status }}
-                                </span>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4">
-                <a href="/admin/transactions" class="text-green-600 hover:text-green-800 font-semibold">
-                    عرض جميع المعاملات <i class="fas fa-arrow-left mr-1"></i>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-exchange-alt text-emerald-500"></i>
+                    آخر المعاملات
+                </h3>
+                <a href="/admin/transactions" class="text-sm font-semibold text-brand hover:text-brand-light transition-colors">
+                    عرض الكل <i class="fas fa-arrow-left mr-1"></i>
                 </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table-dash">
+                        <thead>
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($recentTransactions as $transaction)
+                            <tr>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar bg-brand-100 text-brand text-xs">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <span class="font-medium text-gray-800">{{ $transaction->user->name }}</span>
+                                    </div>
+                                </td>
+                                <td class="font-semibold text-emerald-600">{{ $transaction->amount }} د.ل</td>
+                                <td>
+                                    <span class="{{ $transaction->status === 'completed' ? 'badge-success' : 'badge-warning' }}">
+                                        <i class="fas fa-{{ $transaction->status === 'completed' ? 'check' : 'clock' }}"></i>
+                                        {{ $transaction->status === 'completed' ? 'مكتملة' : $transaction->status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3">
+                                    <div class="empty-state py-8">
+                                        <div class="empty-state-icon">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </div>
+                                        <p class="empty-state-text">لا توجد معاملات حديثة</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- Pending Courses -->
-        <div class="bg-white rounded-lg shadow-lg p-6 card">
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fas fa-exclamation-triangle text-orange-600 mr-2"></i>
-                الدورات قيد المراجعة
-            </h3>
-            <div class="space-y-3">
-                @foreach($pendingCourses as $course)
-                <div class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition">
-                    <div class="font-semibold text-gray-800">{{ Str::limit($course->title, 40) }}</div>
-                    <div class="text-sm text-gray-600 flex items-center mt-1">
-                        <i class="fas fa-user mr-1"></i>
-                        المحاضر: {{ $course->teacher->name }}
-                    </div>
-                    <div class="mt-2 flex space-x-2 space-x-reverse">
-                        <form method="POST" action="/admin/courses/{{ $course->id }}/approve" class="inline">
-                            @csrf
-                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center">
-                                <i class="fas fa-check mr-1"></i> موافق
-                            </button>
-                        </form>
-                        <form method="POST" action="/admin/courses/{{ $course->id }}/reject" class="inline">
-                            @csrf
-                            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex items-center">
-                                <i class="fas fa-times mr-1"></i> رفض
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-            <div class="mt-4">
-                <a href="/admin/courses" class="text-green-600 hover:text-green-800 font-semibold">
-                    عرض جميع الدورات <i class="fas fa-arrow-left mr-1"></i>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle text-amber-500"></i>
+                    الدورات قيد المراجعة
+                </h3>
+                <a href="/admin/courses?status=pending" class="text-sm font-semibold text-brand hover:text-brand-light transition-colors">
+                    عرض الكل <i class="fas fa-arrow-left mr-1"></i>
                 </a>
+            </div>
+            <div class="card-body">
+                <div class="space-y-3">
+                    @forelse($pendingCourses as $course)
+                    <div class="list-item">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-semibold text-gray-800 text-sm">{{ Str::limit($course->title, 40) }}</div>
+                            <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                <i class="fas fa-user"></i>
+                                {{ $course->teacher->name }}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mr-3 flex-shrink-0">
+                            <form method="POST" action="/admin/courses/{{ $course->id }}/approve">
+                                @csrf
+                                <button type="submit" class="btn btn-success btn-xs">
+                                    <i class="fas fa-check"></i> موافق
+                                </button>
+                            </form>
+                            <button type="button" onclick="openRejectModal({{ $course->id }}, '{{ addslashes($course->title) }}')" class="btn btn-danger btn-xs">
+                                <i class="fas fa-times"></i> رفض
+                            </button>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="empty-state py-8">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-check-circle" style="color:#10b981;"></i>
+                        </div>
+                        <p class="empty-state-text">لا توجد دورات قيد المراجعة</p>
+                    </div>
+                    @endforelse
+                </div>
             </div>
         </div>
         @else
         <!-- Recent Students (Teacher View) -->
-        <div class="bg-white rounded-lg shadow-lg p-6 card">
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fas fa-user-graduate text-green-600 mr-2"></i>
-                آخر الطلاب المسجلين
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الطالب</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الدورة</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ التسجيل</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                         @forelse($recentEnrollments ?? [] as $enrollment)
-                        <tr>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $enrollment->student_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $enrollment->course_title }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ \Carbon\Carbon::parse($enrollment->created_at)->toDateString() }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="3" class="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-500">لا يوجد تسجيلات حديثة</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-user-graduate text-emerald-500"></i>
+                    آخر الطلاب المسجلين
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table-dash">
+                        <thead>
+                            <tr>
+                                <th>الطالب</th>
+                                <th>الدورة</th>
+                                <th>تاريخ التسجيل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($recentEnrollments ?? [] as $enrollment)
+                            <tr>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar bg-brand-100 text-brand text-xs">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                        <span class="font-medium text-gray-800">{{ $enrollment->student_name }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-gray-500">{{ $enrollment->course_title }}</td>
+                                <td class="text-gray-400">{{ \Carbon\Carbon::parse($enrollment->created_at)->toDateString() }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3">
+                                    <div class="empty-state py-8">
+                                        <div class="empty-state-icon">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                        <p class="empty-state-text">لا يوجد تسجيلات حديثة</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         @endif
     </div>
 </div>
 
+<!-- Reject Course Modal -->
+<div id="rejectModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-gray-800">رفض الدورة</h3>
+            <button type="button" onclick="closeRejectModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="rejectCourseName" class="text-sm text-gray-500 mb-4"></p>
+            <form id="rejectForm" method="POST">
+                @csrf
+                <label class="form-label">
+                    سبب الرفض <span class="text-red-500">*</span>
+                </label>
+                <textarea name="reason" rows="4" required
+                          class="form-textarea"
+                          placeholder="اكتب سبباً واضحاً سيُرسَل للمعلم عبر البريد الإلكتروني..."></textarea>
+                <div class="flex justify-end gap-3 mt-5">
+                    <button type="button" onclick="closeRejectModal()" class="btn-secondary btn-sm">إلغاء</button>
+                    <button type="submit" class="btn-danger btn-sm">تأكيد الرفض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+    function openRejectModal(courseId, courseTitle) {
+        document.getElementById('rejectForm').action = '/admin/courses/' + courseId + '/reject';
+        document.getElementById('rejectCourseName').textContent = courseTitle;
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+        document.getElementById('rejectForm').querySelector('textarea').value = '';
+    }
+    document.getElementById('rejectModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeRejectModal();
+    });
+
     @if(auth()->user()->hasRole('admin'))
-    // Revenue Chart
+    // Revenue Chart - Line with gradient
     const revenueCtx = document.getElementById('revenueChart').getContext('2d');
     const revenueData = @json($revenueData);
     
@@ -215,19 +289,57 @@
             datasets: [{
                 label: 'الإيرادات (د.ل)',
                 data: revenueData.map(d => d.total),
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderColor: '#823dbb',
+                backgroundColor: (ctx) => {
+                    const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 280);
+                    g.addColorStop(0, 'rgba(130, 61, 187, 0.25)');
+                    g.addColorStop(1, 'rgba(130, 61, 187, 0)');
+                    return g;
+                },
+                borderWidth: 2.5,
                 tension: 0.4,
-                fill: true
+                fill: true,
+                pointBackgroundColor: '#823dbb',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: '#57247a',
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e1e2a',
+                    titleColor: '#fff',
+                    bodyColor: '#e2e8f0',
+                    cornerRadius: 10,
+                    padding: 12,
+                    boxPadding: 4,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: { font: { family: 'Tajawal', size: 11 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Tajawal', size: 11 } }
+                }
+            }
         }
     });
 
-    // User Growth Chart
+    // User Growth Chart - Bar with brand colors
     const userCtx = document.getElementById('userChart').getContext('2d');
     const userGrowthData = @json($userData);
     
@@ -238,12 +350,42 @@
             datasets: [{
                 label: 'مستخدمين جدد',
                 data: userGrowthData.map(d => d.count),
-                backgroundColor: '#3b82f6',
+                backgroundColor: userGrowthData.map((_, i) => {
+                    const colors = ['#57247a', '#823dbb', '#c59bd7', '#a56dbd'];
+                    return colors[i % colors.length];
+                }),
+                borderRadius: 6,
+                borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e1e2a',
+                    titleColor: '#fff',
+                    bodyColor: '#e2e8f0',
+                    cornerRadius: 10,
+                    padding: 12,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: { font: { family: 'Tajawal', size: 11 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Tajawal', size: 11 } }
+                }
+            }
         }
     });
     @endif

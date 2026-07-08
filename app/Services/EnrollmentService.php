@@ -28,6 +28,11 @@ class EnrollmentService
             throw new \Exception('Already enrolled in this course');
         }
 
+        // Only published courses can be enrolled
+        if ($course->status !== 'published') {
+            throw new \Exception('Course is not published');
+        }
+
         $price = $course->discount_price ?? $course->price;
         $appliedCoupon = null;
 

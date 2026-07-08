@@ -28,14 +28,18 @@ class AuthService
 
     public function createAccessToken(User $user, string $deviceName = 'default'): NewAccessToken
     {
-        return $user->createToken($this->buildTokenName($deviceName, 'access'), [self::ACCESS_TOKEN_ABILITY])
-            ->expiresAt(now()->addMinutes(self::ACCESS_TOKEN_TTL));
+        $token = $user->createToken($this->buildTokenName($deviceName, 'access'), [self::ACCESS_TOKEN_ABILITY]);
+        $token->accessToken->expires_at = now()->addMinutes(self::ACCESS_TOKEN_TTL);
+        $token->accessToken->save();
+        return $token;
     }
 
     public function createRefreshToken(User $user, string $deviceName = 'default'): NewAccessToken
     {
-        return $user->createToken($this->buildTokenName($deviceName, 'refresh'), [self::REFRESH_TOKEN_ABILITY])
-            ->expiresAt(now()->addMinutes(self::REFRESH_TOKEN_TTL));
+        $token = $user->createToken($this->buildTokenName($deviceName, 'refresh'), [self::REFRESH_TOKEN_ABILITY]);
+        $token->accessToken->expires_at = now()->addMinutes(self::REFRESH_TOKEN_TTL);
+        $token->accessToken->save();
+        return $token;
     }
 
     public function revokeAllUserTokens(User $user): void

@@ -36,7 +36,7 @@ class QuizApiTest extends TestCase
         
         Question::factory(5)->create(['quiz_id' => $quiz->id]);
 
-        $response = $this->actingAs($student, 'sanctum')->getJson("/api/student/quizzes/{$quiz->id}");
+        $response = $this->actingAs($student, 'sanctum')->getJson("/api/v1/student/quizzes/{$quiz->id}");
 
         $response->assertStatus(200)
                  ->assertJsonStructure([
@@ -76,7 +76,7 @@ class QuizApiTest extends TestCase
             ['question_id' => $questions[1]->id, 'option_id' => $questions[1]->options()->where('is_correct', false)->first()->id],
         ];
 
-        $response = $this->actingAs($student, 'sanctum')->postJson("/api/student/quizzes/{$quiz->id}/submit", [
+        $response = $this->actingAs($student, 'sanctum')->postJson("/api/v1/student/quizzes/{$quiz->id}/submit", [
             'answers' => $answers
         ]);
 
@@ -109,7 +109,7 @@ class QuizApiTest extends TestCase
         ]);
         
         // Use correct URL
-        $response = $this->getJson("/api/student/quizzes/{$quiz->id}");
+        $response = $this->getJson("/api/v1/student/quizzes/{$quiz->id}");
         $response->assertStatus(401);
     }
 }

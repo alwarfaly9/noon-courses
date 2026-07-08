@@ -5,107 +5,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'لوحة المعلم') - noon</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .sidebar { min-height: calc(100vh - 60px); }
-        .sidebar a { transition: all 0.3s ease; }
-        .sidebar a:hover { background-color: #57247A; color: #fff; transform: translateX(5px); }
-        .sidebar a.active { background: linear-gradient(135deg, #57247A 0%, #823DBB 100%); border-left: 4px solid #C59BD7; color: #fff !important; }
-        .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        table { border-collapse: separate; border-spacing: 0; }
-        table tbody tr { transition: background-color 0.2s ease; }
-        table tbody tr:hover { background-color: #f3f4f6; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @stack('head')
 </head>
-<body class="bg-gray-50">
+<body class="bg-surface min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="text-white p-4 shadow-lg" style="background: linear-gradient(135deg, #57247A 0%, #823DBB 100%)">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <img src="/logo.png" alt="noon" style="width:36px;height:36px;object-fit:contain;border-radius:10px;">
-                <div>
-                    <h1 class="text-xl font-bold tracking-wide">noon — المعلم</h1>
-                </div>
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-gradient-to-l from-brand to-brand-light text-white shadow-lg">
+        <div class="px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button id="sidebarToggle" class="lg:hidden text-white/80 hover:text-white transition-colors text-xl p-1">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="/teacher/dashboard" class="flex items-center gap-2.5">
+                    <img src="{{ asset('images/noon.png') }}" alt="noon"
+                         class="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-lg bg-white/10 p-1"
+                         style="filter: brightness(0) invert(1);">
+                    <span class="text-lg sm:text-xl font-extrabold tracking-tight">noon</span>
+                    <span class="hidden sm:inline text-[10px] sm:text-xs font-medium bg-white/15 px-2 py-0.5 rounded-full">معلم</span>
+                </a>
             </div>
-            <div class="flex items-center space-x-4 space-x-reverse">
-                <div class="flex items-center space-x-2 space-x-reverse">
-                    <i class="fas fa-user-circle"></i>
-                    <span>{{ Auth::user()->name ?? 'معلم' }}</span>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 text-sm">
+                    <div class="header-user-avatar">
+                        <i class="fas fa-user-circle text-base sm:text-lg"></i>
+                    </div>
+                    <span class="hidden sm:inline font-medium text-sm">{{ Auth::user()->name ?? 'معلم' }}</span>
                 </div>
-                <form method="POST" action="/teacher/logout" class="inline">
+                <form method="POST" action="/teacher/logout">
                     @csrf
-                    <button type="submit" class="px-4 py-2 rounded flex items-center space-x-2 space-x-reverse transition-all hover:bg-white hover:bg-opacity-20" style="background:rgba(255,255,255,0.15)">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>تسجيل الخروج</span>
+                    <button type="submit" class="header-nav-item">
+                        <i class="fas fa-sign-out-alt text-xs sm:text-sm"></i>
+                        <span class="hidden sm:inline">تسجيل الخروج</span>
                     </button>
                 </form>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <div class="container mx-auto mt-4 flex gap-4 px-4 pb-10">
+    <div class="flex">
+        <!-- Sidebar Overlay (mobile) -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+
         <!-- Sidebar -->
-        <aside class="w-64 flex-shrink-0 bg-white rounded-lg shadow-lg sidebar p-4">
-            <ul class="space-y-2">
-                <li>
-                    <a href="/teacher/dashboard" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/dashboard') ? 'active text-white' : '' }}">
-                        <i class="fas fa-tachometer-alt w-6"></i>
-                        <span class="mr-3">لوحة التحكم</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/teacher/courses" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/courses*') ? 'active text-white' : '' }}">
-                        <i class="fas fa-graduation-cap w-6"></i>
-                        <span class="mr-3">دوراتي</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/teacher/withdraw-requests" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/withdraw-requests*') ? 'active text-white' : '' }}">
-                        <i class="fas fa-money-bill-wave w-6"></i>
-                        <span class="mr-3">طلبات السحب</span>
-                    </a>
-                </li>
+        <aside id="sidebar"
+               class="fixed lg:sticky top-16 right-0 lg:right-auto z-30 w-72 h-[calc(100vh-4rem)]
+                      bg-white border-l border-gray-100 shadow-card
+                      translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out
+                      overflow-y-auto scrollbar-thin flex-shrink-0">
+            <!-- Logo Area -->
+            <div class="p-5 border-b border-gray-100">
+                <a href="/teacher/dashboard" class="flex items-center gap-3">
+                    <img src="{{ asset('images/noon.png') }}" alt="noon"
+                         class="w-12 h-12 object-contain rounded-xl"
+                         style="filter: brightness(0) saturate(100%) invert(19%) sepia(69%) saturate(3166%) hue-rotate(270deg) brightness(60%) contrast(95%);">
+                    <div class="min-w-0">
+                        <div class="text-lg font-extrabold text-brand tracking-tight leading-none">noon</div>
+                        <div class="text-[10px] font-medium text-gray-400 mt-0.5">لوحة المعلم</div>
+                    </div>
+                </a>
+            </div>
 
-                {{-- Engagement --}}
-                <li class="pt-3 border-t border-gray-200">
-                    <div class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">التفاعل</div>
-                </li>
-                <li>
-                    <a href="/teacher/stories" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/stories*') ? 'active text-white' : '' }}">
-                        <i class="fas fa-story w-6"></i>
-                        <span class="mr-3">القصص</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/teacher/challenges" class="flex items-center px-4 py-3 text-gray-700 rounded {{ request()->is('teacher/challenges*') ? 'active text-white' : '' }}">
-                        <i class="fas fa-fire w-6"></i>
-                        <span class="mr-3">التحديات</span>
-                    </a>
-                </li>
-            </ul>
+            <nav class="p-3 space-y-0.5">
+                <a href="/teacher/dashboard" class="{{ request()->is('teacher/dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-tachometer-alt w-5 text-center"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+
+                <div class="sidebar-section-label mt-4">المحتوى</div>
+                <a href="/teacher/courses" class="{{ request()->is('teacher/courses*') && !request()->is('teacher/courses/create*') && !request()->is('teacher/courses/*/edit*') && !request()->is('teacher/courses/*/content*') ? 'active' : '' }}">
+                    <i class="fas fa-graduation-cap w-5 text-center"></i>
+                    <span>دوراتي</span>
+                </a>
+
+                <div class="sidebar-section-label mt-4">التقييم</div>
+                <a href="/teacher/quizzes" class="{{ request()->is('teacher/quizzes*') ? 'active' : '' }}">
+                    <i class="fas fa-question-circle w-5 text-center"></i>
+                    <span>الاختبارات</span>
+                </a>
+
+                <div class="sidebar-section-label mt-4">المالية</div>
+                <a href="/teacher/withdraw-requests" class="{{ request()->is('teacher/withdraw-requests*') ? 'active' : '' }}">
+                    <i class="fas fa-hand-holding-usd w-5 text-center"></i>
+                    <span>طلبات السحب</span>
+                </a>
+
+                <div class="sidebar-section-label mt-4">التحليلات</div>
+                <a href="/teacher/analytics" class="{{ request()->is('teacher/analytics*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-bar w-5 text-center"></i>
+                    <span>التحليلات</span>
+                </a>
+
+                <div class="sidebar-section-label mt-4">التفاعل</div>
+                <a href="/teacher/stories" class="{{ request()->is('teacher/stories*') ? 'active' : '' }}">
+                    <i class="fas fa-book-open w-5 text-center"></i>
+                    <span>القصص</span>
+                </a>
+                <a href="/teacher/challenges" class="{{ request()->is('teacher/challenges*') ? 'active' : '' }}">
+                    <i class="fas fa-fire w-5 text-center"></i>
+                    <span>التحديات</span>
+                </a>
+            </nav>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 min-w-0">
+        <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 animate-fade-in">
             @if(session('success'))
-            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                <span class="text-green-800">{{ session('success') }}</span>
-            </div>
+                <div class="alert-success mb-5 animate-slide-up" role="alert">
+                    <i class="fas fa-check-circle text-emerald-600"></i>
+                    <span class="flex-1">{{ session('success') }}</span>
+                    <button onclick="this.parentElement.remove()" class="text-emerald-600/60 hover:text-emerald-800">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             @endif
             @if(session('error'))
-            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-                <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>
-                <span class="text-red-800">{{ session('error') }}</span>
-            </div>
+                <div class="alert-danger mb-5 animate-slide-up" role="alert">
+                    <i class="fas fa-exclamation-circle text-red-600"></i>
+                    <span class="flex-1">{{ session('error') }}</span>
+                    <button onclick="this.parentElement.remove()" class="text-red-600/60 hover:text-red-800">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             @endif
             @yield('content')
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const toggle = document.getElementById('sidebarToggle');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', function() {
+                sidebar.classList.toggle('translate-x-full');
+                sidebar.classList.toggle('translate-x-0');
+                overlay.classList.toggle('hidden');
+                document.body.classList.toggle('overflow-hidden');
+            });
+
+            overlay.addEventListener('click', function() {
+                sidebar.classList.add('translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            });
+        }
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar && !sidebar.classList.contains('translate-x-full') && window.innerWidth < 1024) {
+                sidebar.classList.add('translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        });
+
+        // Auto-close alert after 5 seconds
+        document.querySelectorAll('.alert-success, .alert-danger').forEach(function(alert) {
+            setTimeout(function() {
+                if (alert.parentElement) alert.remove();
+            }, 5000);
+        });
+    });
+    </script>
     @stack('scripts')
 </body>
 </html>

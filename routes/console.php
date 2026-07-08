@@ -23,3 +23,6 @@ Schedule::command('backup:database')->dailyAt('02:00');
 
 // Smart behavioral notifications — runs every 4 hours
 Schedule::command('notifications:dispatch')->everyFourHours();
+
+// Daily analytics aggregation
+Schedule::job(new \App\Jobs\DailyAnalyticsJob)->dailyAt('23:55');

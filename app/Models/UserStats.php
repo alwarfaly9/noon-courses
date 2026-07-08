@@ -48,17 +48,22 @@ class UserStats extends Model
 
     public function getXpToNextLevelAttribute(): int
     {
-        $next = self::$levels[$this->level + 1] ?? null;
-        if ($next === null) return 0; // max level
-        return $next - $this->xp_total;
+        $level = max(1, (int) $this->level);
+        $next  = self::$levels[$level + 1] ?? null;
+        if ($next === null) return 0;
+        return max(0, $next - (int) $this->xp_total);
     }
 
     public function getLevelProgressPercentAttribute(): float
     {
-        $current = self::$levels[$this->level] ?? 0;
-        $next    = self::$levels[$this->level + 1] ?? null;
+        $level = (int) $this->level;
+        $xp    = (int) $this->xp_total;
+        if ($level < 1) $level = 1;
+        $current = self::$levels[$level] ?? 0;
+        $next    = self::$levels[$level + 1] ?? null;
         if ($next === null) return 100.0;
         $range = $next - $current;
-        return round((($this->xp_total - $current) / $range) * 100, 1);
+        if ($range <= 0) return 100.0;
+        return round((($xp - $current) / $range) * 100, 1);
     }
 }

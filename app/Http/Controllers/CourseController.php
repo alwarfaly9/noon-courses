@@ -62,8 +62,12 @@ class CourseController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            $code = str_contains($e->getMessage(), 'Already enrolled') ? 400
-                : (str_contains($e->getMessage(), 'Insufficient') ? 400 : 500);
+            $code = match(true) {
+                str_contains($e->getMessage(), 'Already enrolled') => 400,
+                str_contains($e->getMessage(), 'Insufficient') => 400,
+                str_contains($e->getMessage(), 'not published') => 400,
+                default => 500,
+            };
 
             return response()->json([
                 'success' => false,

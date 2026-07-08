@@ -65,7 +65,7 @@ class RecommendationService
                     CASE WHEN category_id IN ({$catClause}) THEN 30 ELSE 0 END
                     + CASE WHEN id IN ({$skillClause}) THEN 25 ELSE 0 END
                     + (rating * 4)
-                    + LEAST(students_count / 100, 20)
+                    + CASE WHEN (students_count / 100) < 20 THEN students_count / 100 ELSE 20 END
                 ) as relevance_score
             ")
             ->orderByDesc('relevance_score')

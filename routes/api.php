@@ -184,6 +184,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Withdraw Requests (Teacher)
         Route::get('withdraw-requests', [PaymentController::class, 'myWithdrawRequests']);
         Route::post('withdraw-requests', [PaymentController::class, 'requestWithdraw']);
+
+        // Analytics
+        Route::get('analytics', [\App\Http\Controllers\TeacherAnalyticsApiController::class, 'index']);
     });
 
     // Payment Routes

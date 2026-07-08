@@ -3,65 +3,63 @@
 @section('title', 'الكوبونات')
 
 @section('content')
-<div class="bg-white rounded-lg shadow-lg p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold flex items-center">
+<div class="card">
+    <div class="page-header">
+        <h2 class="page-title">
             <i class="fas fa-ticket-alt text-green-600 mr-3"></i>
             إدارة الكوبونات
         </h2>
-        <button onclick="openAddModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 space-x-reverse btn-primary">
+        <button onclick="openAddModal()" class="btn-primary">
             <i class="fas fa-plus"></i>
             <span>إضافة كوبون</span>
         </button>
     </div>
 
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gradient-to-r from-green-600 to-green-700 text-white">
+        <table class="table-premium">
+            <thead>
                 <tr>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">الكود</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">الاسم</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">الخصم</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">المستخدمات</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">الحالة</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">انتهاء الصلاحية</th>
-                    <th class="px-6 py-4 text-right text-sm font-semibold uppercase">الإجراءات</th>
+                    <th>الكود</th>
+                    <th>الاسم</th>
+                    <th>الخصم</th>
+                    <th>المستخدمات</th>
+                    <th>الحالة</th>
+                    <th>انتهاء الصلاحية</th>
+                    <th>الإجراءات</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody>
                 @forelse($coupons as $coupon)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
+                <tr>
+                    <td>
                         <div class="font-mono text-sm font-bold text-green-600">{{ $coupon->code }}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $coupon->name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <td><span class="text-sm font-medium text-gray-900">{{ $coupon->name }}</span></td>
+                    <td>
                         @if($coupon->discount_type === 'percentage')
                         <span class="text-green-600 font-semibold">{{ $coupon->discount_value }}%</span>
                         @else
                         <span class="text-green-600 font-semibold">{{ $coupon->discount_value }} د.ل</span>
                         @endif
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    <td>
+                        <span class="badge-info">
                             {{ $coupon->used_count }} / {{ $coupon->usage_limit ?? '∞' }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td>
                         @if($coupon->is_active)
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            <i class="fas fa-check-circle mr-1"></i> نشط
+                        <span class="badge-success">
+                            <i class="fas fa-check-circle ml-1"></i> نشط
                         </span>
                         @else
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            <i class="fas fa-times-circle mr-1"></i> معطل
+                        <span class="badge-danger">
+                            <i class="fas fa-times-circle ml-1"></i> معطل
                         </span>
                         @endif
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ $coupon->expires_at ? $coupon->expires_at->format('Y-m-d') : '-' }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 space-x-reverse">
+                    <td><span class="text-sm text-gray-500">{{ $coupon->expires_at ? $coupon->expires_at->format('Y-m-d') : '-' }}</span></td>
+                    <td class="space-x-2 space-x-reverse">
                         <button class="text-blue-600 hover:text-blue-900">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -72,9 +70,11 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-                        <i class="fas fa-ticket-alt text-4xl mb-2"></i>
-                        <p>لا يوجد كوبونات</p>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-ticket-alt empty-state-icon"></i>
+                            <p class="empty-state-text">لا يوجد كوبونات</p>
+                        </div>
                     </td>
                 </tr>
                 @endforelse
@@ -88,41 +88,41 @@
 </div>
 
 <!-- Add Coupon Modal -->
-<div id="addModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl p-8 w-96">
-        <h3 class="text-2xl font-bold mb-6">إضافة كوبون جديد</h3>
+<div id="addModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>إضافة كوبون جديد</h3>
+        </div>
         <form method="POST" action="{{ url('/admin/coupons') }}">
             @csrf
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">الكود</label>
-                <input type="text" name="code" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
+            <div class="modal-body">
+                <div class="mb-4">
+                    <label class="form-label">الكود</label>
+                    <input type="text" name="code" required class="form-input">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">الاسم</label>
+                    <input type="text" name="name" required class="form-input">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">نوع الخصم</label>
+                    <select name="discount_type" required class="form-select">
+                        <option value="percentage">نسبة مئوية (%)</option>
+                        <option value="fixed_amount">مبلغ ثابت (د.ل)</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">قيمة الخصم</label>
+                    <input type="number" name="discount_value" required class="form-input">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">حد الاستخدام</label>
+                    <input type="number" name="usage_limit" class="form-input">
+                </div>
             </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">الاسم</label>
-                <input type="text" name="name" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">نوع الخصم</label>
-                <select name="discount_type" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
-                    <option value="percentage">نسبة مئوية (%)</option>
-                    <option value="fixed_amount">مبلغ ثابت (د.ل)</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">قيمة الخصم</label>
-                <input type="number" name="discount_value" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">حد الاستخدام</label>
-                <input type="number" name="usage_limit" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
-            </div>
-            <div class="flex space-x-4 space-x-reverse">
-                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                    إضافة
-                </button>
-                <button type="button" onclick="closeAddModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
-                    إلغاء
-                </button>
+            <div class="modal-footer">
+                <button type="submit" class="btn-primary">إضافة</button>
+                <button type="button" onclick="closeAddModal()" class="btn-neutral">إلغاء</button>
             </div>
         </form>
     </div>
@@ -138,4 +138,3 @@ function closeAddModal() {
 }
 </script>
 @endsection
-

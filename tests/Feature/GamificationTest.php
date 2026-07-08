@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserStats;
 use App\Services\GamificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class GamificationTest extends TestCase
@@ -21,6 +22,8 @@ class GamificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
 
         $this->student      = User::factory()->create();
         $this->student->assignRole('student');

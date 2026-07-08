@@ -5,14 +5,14 @@
 <div class="space-y-6">
 
     {{-- Date range filter --}}
-    <div class="bg-white rounded-lg shadow p-4 flex items-center justify-between flex-wrap gap-3">
+    <div class="filter-bar">
         <h2 class="text-xl font-bold flex items-center gap-2">
             <i class="fas fa-chart-bar text-green-600"></i> التقارير والإحصائيات
         </h2>
         <form method="GET" class="flex items-center gap-2">
             <label class="text-sm text-gray-600 font-medium">الفترة الزمنية:</label>
             <select name="months" onchange="this.form.submit()"
-                    class="border rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-300">
+                    class="form-select text-sm">
                 <option value="3"  {{ $months==3  ? 'selected':'' }}>آخر 3 أشهر</option>
                 <option value="6"  {{ $months==6  ? 'selected':'' }}>آخر 6 أشهر</option>
                 <option value="12" {{ $months==12 ? 'selected':'' }}>آخر 12 شهر</option>
@@ -34,7 +34,7 @@
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         @foreach($kpiCards as $card)
-        <div class="bg-white rounded-xl shadow p-4 card">
+        <div class="kpi-card">
             <div class="{{ $card['bg'] }} {{ $card['text'] }} rounded-full w-10 h-10 flex items-center justify-center mb-2">
                 <i class="fas {{ $card['icon'] }}"></i>
             </div>
@@ -45,7 +45,7 @@
     </div>
 
     {{-- Revenue + Enrollments combo chart --}}
-    <div class="bg-white rounded-xl shadow p-6 card">
+    <div class="card">
         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
             <i class="fas fa-chart-line text-green-600"></i> الإيرادات والاشتراكات الشهرية
         </h3>
@@ -54,13 +54,13 @@
 
     {{-- Users growth + Category doughnut --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow p-6 card">
+        <div class="card">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                 <i class="fas fa-users text-blue-600"></i> نمو المستخدمين
             </h3>
             <canvas id="usersChart" height="160"></canvas>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 card">
+        <div class="card">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                 <i class="fas fa-layer-group text-purple-600"></i> الاشتراكات حسب التصنيف
             </h3>
@@ -72,15 +72,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {{-- Top Courses --}}
-        <div class="bg-white rounded-xl shadow p-6 card">
-            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <i class="fas fa-trophy text-yellow-500"></i> أكثر الدورات اشتراكاً
-            </h3>
+        <div class="content-section">
+            <div class="content-section-header">
+                <h3 class="flex items-center gap-2">
+                    <i class="fas fa-trophy text-yellow-500"></i> أكثر الدورات اشتراكاً
+                </h3>
+            </div>
             <div class="space-y-2">
                 @forelse($topCourses as $i => $course)
-                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <span class="flex-shrink-0 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center
-                        {{ $i===0 ? 'bg-yellow-400 text-white' : ($i===1 ? 'bg-gray-300 text-gray-700' : ($i===2 ? 'bg-orange-400 text-white' : 'bg-gray-100 text-gray-500')) }}">
+                <div class="list-item">
+                    <span class="rank-badge {{ $i===0 ? 'rank-gold' : ($i===1 ? 'rank-silver' : ($i===2 ? 'rank-bronze' : 'rank-default')) }}">
                         {{ $i+1 }}
                     </span>
                     <div class="flex-1 min-w-0">
@@ -100,15 +101,16 @@
         </div>
 
         {{-- Top Teachers --}}
-        <div class="bg-white rounded-xl shadow p-6 card">
-            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <i class="fas fa-chalkboard-teacher text-purple-500"></i> أعلى المعلمين أرباحاً
-            </h3>
+        <div class="content-section">
+            <div class="content-section-header">
+                <h3 class="flex items-center gap-2">
+                    <i class="fas fa-chalkboard-teacher text-purple-500"></i> أعلى المعلمين أرباحاً
+                </h3>
+            </div>
             <div class="space-y-2">
                 @forelse($topTeachers as $i => $teacher)
-                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <span class="flex-shrink-0 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center
-                        {{ $i===0 ? 'bg-yellow-400 text-white' : ($i===1 ? 'bg-gray-300 text-gray-700' : ($i===2 ? 'bg-orange-400 text-white' : 'bg-gray-100 text-gray-500')) }}">
+                <div class="list-item">
+                    <span class="rank-badge {{ $i===0 ? 'rank-gold' : ($i===1 ? 'rank-silver' : ($i===2 ? 'rank-bronze' : 'rank-default')) }}">
                         {{ $i+1 }}
                     </span>
                     <div class="flex-1 min-w-0">
@@ -215,4 +217,3 @@
 })();
 </script>
 @endpush
-
