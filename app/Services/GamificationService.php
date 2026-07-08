@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\AchievementUnlocked;
+use App\Events\CourseCompleted;
 use App\Models\Badge;
 use App\Models\Course;
 use App\Models\LearningPath;
@@ -113,6 +115,9 @@ class GamificationService
 
         // Auto-award skills for the course
         app(SkillService::class)->awardCourseSkills($user, $course);
+
+        // Dispatch event for notification pipeline
+        CourseCompleted::dispatch($user, $course);
     }
 
     public function onQuizPassed(User $user, float $scorePercentage): void
@@ -196,12 +201,8 @@ class GamificationService
             $this->awardXp($user, $badge->xp_reward, "badge:{$badge->slug}");
         }
 
-        app(NotificationService::class)->send(
-            $user,
-            '🏆 وسام جديد!',
-            "حصلت على وسام \"{$badge->name}\"",
-            'achievement'
-        );
+        // Dispatch event for notification pipeline
+        AchievementUnlocked::dispatch($user, $badge);
 
         Log::info("[Gamification] Badge '{$badge->slug}' awarded to user #{$user->id}");
     }

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\CommentCreated;
+use App\Events\CommentReplied;
 use App\Models\CommentReaction;
 use App\Models\CourseLesson;
 use App\Models\LessonComment;
@@ -43,20 +45,17 @@ class CommunityService
             'content'   => $content,
         ]);
 
+        // Dispatch comment event
+        CommentCreated::dispatch($comment);
+
         // Increment replies counter on parent
         if ($parentId) {
             LessonComment::where('id', $parentId)->increment('replies_count');
 
-            // Notify parent comment author (if different user)
+            // Dispatch reply notification event
             $parentComment = LessonComment::find($parentId);
             if ($parentComment && $parentComment->user_id !== $user->id) {
-                app(NotificationService::class)->send(
-                    $parentComment->user_id,
-                    '💬 رد جديد على تعليقك',
-                    "{$user->name} رد على تعليقك في الدرس",
-                    'community',
-                    ['lesson_id' => $lesson->id, 'comment_id' => $comment->id]
-                );
+                CommentReplied::dispatch($comment, $parentComment);
             }
         }
 

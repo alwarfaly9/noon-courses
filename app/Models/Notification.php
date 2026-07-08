@@ -12,9 +12,14 @@ class Notification extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'category',
+        'priority',
         'title',
         'message',
         'data',
+        'action_url',
+        'image',
+        'metadata',
         'is_read',
         'read_at',
     ];
@@ -24,7 +29,28 @@ class Notification extends Model
         return [
             'is_read' => 'boolean',
             'read_at' => 'datetime',
+            'metadata' => 'array',
         ];
+    }
+
+    public function scopeUnread($query)
+    {
+        return $query->where('is_read', false);
+    }
+
+    public function scopeByCategory($query, string $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    public function scopeByPriority($query, string $priority)
+    {
+        return $query->where('priority', $priority);
+    }
+
+    public function markAsRead(): void
+    {
+        $this->update(['is_read' => true, 'read_at' => now()]);
     }
 
     public function user()

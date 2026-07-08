@@ -116,6 +116,9 @@ Route::middleware(['auth', 'permission:access_dashboard'])->prefix('admin')->gro
     // Reports
     Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports')->middleware('permission:view_analytics');
 
+    // ── Notification Analytics Dashboard ────────────────────────────────
+    Route::get('/notifications', [\App\Http\Controllers\AdminBroadcastController::class, 'dashboardAnalytics'])->name('admin.notifications')->middleware('permission:view_analytics');
+
     // Logout
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
 });

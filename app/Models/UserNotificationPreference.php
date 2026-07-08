@@ -13,22 +13,32 @@ class UserNotificationPreference extends Model
         'quiz_retry_reminders', 'path_reminders', 'community_replies',
         'teacher_announcements', 'recommended_content',
         'quiet_hour_start', 'quiet_hour_end',
+        // Category-level preferences
+        'course_alerts', 'achievement_alerts_category', 'community_alerts',
+        'payment_alerts', 'marketing_alerts', 'security_alerts', 'system_alerts',
     ];
 
     protected function casts(): array
     {
         return [
-            'push_enabled'            => 'boolean',
-            'email_enabled'           => 'boolean',
-            'in_app_enabled'          => 'boolean',
-            'streak_reminders'        => 'boolean',
-            'inactivity_reminders'    => 'boolean',
-            'achievement_alerts'      => 'boolean',
-            'quiz_retry_reminders'    => 'boolean',
-            'path_reminders'          => 'boolean',
-            'community_replies'       => 'boolean',
-            'teacher_announcements'   => 'boolean',
-            'recommended_content'     => 'boolean',
+            'push_enabled'                => 'boolean',
+            'email_enabled'               => 'boolean',
+            'in_app_enabled'              => 'boolean',
+            'streak_reminders'            => 'boolean',
+            'inactivity_reminders'        => 'boolean',
+            'achievement_alerts'          => 'boolean',
+            'quiz_retry_reminders'        => 'boolean',
+            'path_reminders'              => 'boolean',
+            'community_replies'           => 'boolean',
+            'teacher_announcements'       => 'boolean',
+            'recommended_content'         => 'boolean',
+            'course_alerts'               => 'boolean',
+            'achievement_alerts_category' => 'boolean',
+            'community_alerts'            => 'boolean',
+            'payment_alerts'              => 'boolean',
+            'marketing_alerts'            => 'boolean',
+            'security_alerts'             => 'boolean',
+            'system_alerts'               => 'boolean',
         ];
     }
 
@@ -64,6 +74,7 @@ class UserNotificationPreference extends Model
 
     /**
      * Can we send a notification of a given trigger type right now?
+     * Supports both trigger-type and category-based checks.
      */
     public function allows(string $triggerType): bool
     {
@@ -78,7 +89,26 @@ class UserNotificationPreference extends Model
             'community_reply'  => $this->community_replies,
             'announcement'     => $this->teacher_announcements,
             'recommendation'   => $this->recommended_content,
-            default            => $this->in_app_enabled,
+            default            => $this->allowsCategory($triggerType),
+        };
+    }
+
+    /**
+     * Check if a notification category is enabled.
+     */
+    public function allowsCategory(string $category): bool
+    {
+        if ($this->isQuietHourNow()) return false;
+
+        return match ($category) {
+            'course'      => $this->course_alerts ?? true,
+            'achievement' => $this->achievement_alerts_category ?? true,
+            'community'   => $this->community_alerts ?? true,
+            'payment'     => $this->payment_alerts ?? true,
+            'marketing'   => $this->marketing_alerts ?? true,
+            'security'    => $this->security_alerts ?? true,
+            'system'      => $this->system_alerts ?? true,
+            default       => $this->in_app_enabled,
         };
     }
 }

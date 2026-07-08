@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\EnrollmentCreated;
+use App\Events\PaymentCompleted;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\Credit;
@@ -107,7 +109,7 @@ class EnrollmentService
             $split = CommissionService::calculateSplit($price);
 
             // Student purchase transaction
-            Transaction::create([
+            $transaction = Transaction::create([
                 'transaction_number' => 'TRX-' . Str::upper(Str::random(12)),
                 'user_id' => $student->id,
                 'course_id' => $course->id,
@@ -151,22 +153,9 @@ class EnrollmentService
             // Convert referral on first enrollment
             $this->convertReferralIfFirstEnrollment($student);
 
-            // Send notifications asynchronously
-            dispatch(new \App\Jobs\SendNotificationJob(
-                $student,
-                'Enrollment Successful',
-                "You have successfully enrolled in {$course->title}.",
-                'course',
-                ['course_id' => $course->id]
-            ));
-
-            dispatch(new \App\Jobs\SendNotificationJob(
-                $course->teacher,
-                'New Student Enrollment',
-                "{$student->name} has enrolled in your course {$course->title}.",
-                'course',
-                ['course_id' => $course->id, 'student_id' => $student->id]
-            ));
+            // Dispatch events for notification pipeline
+            EnrollmentCreated::dispatch($student, $course);
+            PaymentCompleted::dispatch($student, $course, $transaction);
 
             return [
                 'new_balance' => $credit->fresh()->balance,
@@ -189,21 +178,8 @@ class EnrollmentService
         // Convert referral on first enrollment
         $this->convertReferralIfFirstEnrollment($student);
 
-        dispatch(new \App\Jobs\SendNotificationJob(
-            $student,
-            'Enrollment Successful',
-            "You have successfully enrolled in {$course->title}.",
-            'course',
-            ['course_id' => $course->id]
-        ));
-
-        dispatch(new \App\Jobs\SendNotificationJob(
-            $course->teacher,
-            'New Student Enrollment',
-            "{$student->name} has enrolled in your course {$course->title}.",
-            'course',
-            ['course_id' => $course->id, 'student_id' => $student->id]
-        ));
+        // Dispatch event for notification pipeline
+        EnrollmentCreated::dispatch($student, $course);
 
         CacheService::invalidateUser($student->id);
 

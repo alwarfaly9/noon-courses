@@ -123,6 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount']);
         Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
         Route::post('/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
+        Route::post('/{id}/opened', [\App\Http\Controllers\NotificationController::class, 'opened']);
         Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy']);
     });
 
@@ -387,6 +388,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'permission:access_admin_pan
 
     // ── Admin: Reviews ────────────────────────────────────────────────────
     Route::post('reviews/{review}/feature',   [ReviewController::class, 'feature']);
+
+    // ── Admin: Broadcast Notifications ────────────────────────────────────
+    Route::prefix('notifications')->group(function () {
+        Route::post('broadcast', [\App\Http\Controllers\AdminBroadcastController::class, 'sendBroadcast']);
+        Route::get('analytics',  [\App\Http\Controllers\AdminBroadcastController::class, 'dashboardAnalytics']);
+    });
 });
 
 // Client Analytics Events (telemetry from Flutter app)
@@ -408,4 +415,4 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
 Route::any('{any}', function (Illuminate\Http\Request $request) {
     return redirect('/api/v1/' . $request->path(), 307);
-})->where('any', '(?!v1/).*');
+})->where('any', '(?!v1/|admin/).*');

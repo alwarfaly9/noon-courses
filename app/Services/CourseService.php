@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\CourseApproved;
+use App\Events\CourseRejected;
 use App\Models\Course;
 use App\Models\CourseEnrollment;
 use App\Models\CourseLesson;
@@ -315,6 +317,8 @@ class CourseService
             'description' => "Approved course: {$course->title}",
             'ip_address' => request()->ip(),
         ]);
+
+        CourseApproved::dispatch($course);
     }
 
     public function rejectCourse(User $user, int $courseId, string $reason): void
@@ -336,5 +340,7 @@ class CourseService
             'description' => "Rejected course: {$course->title}. Reason: {$reason}",
             'ip_address' => request()->ip(),
         ]);
+
+        CourseRejected::dispatch($course, $reason);
     }
 }
