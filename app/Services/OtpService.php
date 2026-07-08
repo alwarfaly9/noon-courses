@@ -41,7 +41,7 @@ class OtpService
         // Send OTP via email; for phone OTP integrate an SMS provider (e.g. Twilio) here.
         if ($type === 'email') {
             try {
-                Mail::to($recipient)->send(new OtpMail((string) $code));
+                Mail::to($recipient)->queue(new OtpMail((string) $code));
             } catch (\Exception $e) {
                 Log::error('[OTP] Failed to send OTP email to ' . $recipient . ': ' . $e->getMessage());
                 throw new \RuntimeException('فشل إرسال البريد الإلكتروني، يرجى المحاولة لاحقاً');

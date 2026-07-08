@@ -10,13 +10,11 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\DispatchSmartNotifications::class,
         \App\Console\Commands\DatabaseBackup::class,
+        \App\Console\Commands\PruneTokens::class,
     ];
 
     protected function schedule(Schedule $schedule): void
     {
-        // Run notification dispatch daily at 02:00 (server timezone)
-        $schedule->command('notifications:dispatch')->dailyAt('02:00');
-
         // Daily database backup (command name defined in DatabaseBackup command)
         $schedule->command('database:backup')->daily()->at('03:00');
     }

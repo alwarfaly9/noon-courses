@@ -24,5 +24,8 @@ Schedule::command('backup:database')->dailyAt('02:00');
 // Smart behavioral notifications — runs every 4 hours
 Schedule::command('notifications:dispatch')->everyFourHours();
 
+// Prune inactive device tokens older than 30 days
+Schedule::command('notifications:prune-tokens --days=30')->daily();
+
 // Daily analytics aggregation
 Schedule::job(new \App\Jobs\DailyAnalyticsJob)->dailyAt('23:55');

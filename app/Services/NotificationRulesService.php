@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\CourseEnrollment;
-use App\Models\NotificationLog;
 use App\Models\QuizAttempt;
 use App\Models\User;
 use App\Models\UserNotificationPreference;

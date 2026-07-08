@@ -316,7 +316,7 @@ class AuthController extends Controller
         );
 
         try {
-            Mail::to($email)->send(new PasswordResetMail($code));
+            Mail::to($email)->queue(new PasswordResetMail($code));
         } catch (\Exception $e) {
             Log::error('[PasswordReset] Failed to send email: ' . $e->getMessage());
         }

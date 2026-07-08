@@ -10,6 +10,7 @@ use App\Mail\CourseRejectedMail;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -168,8 +169,20 @@ class CourseController extends Controller
         $course = Course::with('teacher')->findOrFail($id);
         $course->update(['status' => 'published', 'published_at' => now()]);
 
-        if ($course->teacher?->email) {
-            Mail::to($course->teacher->email)->queue(new CourseApprovedMail($course));
+        if ($course->teacher) {
+            $teacher = $course->teacher;
+
+            if ($teacher->email) {
+                Mail::to($teacher->email)->queue(new CourseApprovedMail($course));
+            }
+
+            NotificationService::send(
+                $teacher,
+                '✅ تمت الموافقة على دورتك',
+                "تمت الموافقة على دورتك \"{$course->title}\" وهي الآن منشورة.",
+                'course',
+                ['course_id' => $course->id]
+            );
         }
 
         return back()->with('success', 'تمت الموافقة على الدورة وإشعار المعلم');
@@ -190,8 +203,20 @@ class CourseController extends Controller
             'rejection_reason' => $reason,
         ]);
 
-        if ($course->teacher?->email) {
-            Mail::to($course->teacher->email)->queue(new CourseRejectedMail($course, $reason));
+        if ($course->teacher) {
+            $teacher = $course->teacher;
+
+            if ($teacher->email) {
+                Mail::to($teacher->email)->queue(new CourseRejectedMail($course, $reason));
+            }
+
+            NotificationService::send(
+                $teacher,
+                '❌ تم رفض دورتك',
+                "عذراً، لم تتم الموافقة على دورتك \"{$course->title}\". السبب: {$reason}",
+                'course',
+                ['course_id' => $course->id]
+            );
         }
 
         return back()->with('success', 'تم رفض الدورة وإشعار المعلم');

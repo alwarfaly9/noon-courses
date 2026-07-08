@@ -7,6 +7,7 @@ use App\Models\CourseEnrollment;
 use App\Models\CourseLesson;
 use App\Services\GamificationService;
 use App\Services\LearningPathService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -84,6 +85,14 @@ class StudentProgressController extends Controller
                 $gamification->onCourseCompleted($user, $course);
                 // Recalculate any learning paths that include this course
                 $this->recalculatePathsForCourse($user, $courseId);
+
+                NotificationService::send(
+                    $user,
+                    '🎉 تهانينا!',
+                    "لقد أتممت دورة \"{$course->title}\" بنجاح!",
+                    'course',
+                    ['course_id' => $course->id]
+                );
             }
         }
         // ─────────────────────────────────────────────────────────────────────
