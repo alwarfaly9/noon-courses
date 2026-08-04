@@ -270,18 +270,17 @@ Route::middleware('auth:sanctum')->group(function () {
 // ── Public routes (no auth) ───────────────────────────────────────────────────
 
 // Learning Paths public list + detail
-Route::prefix('v1')->group(function () {
-    Route::get('learning-paths',         [LearningPathController::class, 'index']);
-    Route::get('learning-paths/{slug}',  [LearningPathController::class, 'show'])
-         ->where('slug', '[a-z0-9\-]+');
+// NOTE: already inside the outer Route::prefix('v1') group — do NOT re-prefix
+Route::get('learning-paths',         [LearningPathController::class, 'index']);
+Route::get('learning-paths/{slug}',  [LearningPathController::class, 'show'])
+     ->where('slug', '[a-z0-9\-]+');
 
-    // Skills public endpoints
-    Route::get('skills',          [SkillController::class, 'index']);
-    Route::get('skills/trending', [SkillController::class, 'trending']);
+// Skills public endpoints
+Route::get('skills',          [SkillController::class, 'index']);
+Route::get('skills/trending', [SkillController::class, 'trending']);
 
-    // Community read-only (unauth guests can read comments)
-    Route::get('lessons/{lessonId}/comments', [CommunityController::class, 'index']);
-});
+// Community read-only (unauth guests can read comments)
+Route::get('lessons/{lessonId}/comments', [CommunityController::class, 'index']);
 
 // Admin Routes
 Route::prefix('admin')->middleware(['auth:sanctum', 'permission:access_admin_panel'])->group(function () {
@@ -397,7 +396,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'permission:access_admin_pan
 });
 
 // Client Analytics Events (telemetry from Flutter app)
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+// NOTE: already inside the outer Route::prefix('v1') group — do NOT re-prefix
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('analytics/events', function (\Illuminate\Http\Request $request) {
         return response()->json(['success' => true, 'received' => count($request->input('events', []))]);
     })->middleware('throttle:30,1');

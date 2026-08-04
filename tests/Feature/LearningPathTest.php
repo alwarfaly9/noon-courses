@@ -28,7 +28,7 @@ class LearningPathTest extends TestCase
     {
         LearningPath::factory(3)->create(['status' => 'published']);
 
-        $this->getJson('/api/v1/v1/learning-paths')
+        $this->getJson('/api/v1/learning-paths')
             ->assertOk()
             ->assertJsonStructure(['data']);
     }
@@ -65,10 +65,10 @@ class LearningPathTest extends TestCase
     {
         $path = LearningPath::factory()->create(['status' => 'draft']);
 
-        $this->getJson('/api/v1/v1/learning-paths')
+        $this->getJson('/api/v1/learning-paths')
             ->assertOk();
 
-        $this->getJson("/api/v1/v1/learning-paths/{$path->slug}")
+        $this->getJson("/api/v1/learning-paths/{$path->slug}")
             ->assertStatus(404);
     }
 
