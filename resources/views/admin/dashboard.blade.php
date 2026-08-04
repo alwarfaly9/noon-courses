@@ -6,14 +6,30 @@
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="page-header">
-        <h1 class="welcome-header">
-            مرحباً، {{ Auth::user()->name }}
-            <span class="welcome-subtitle">نظرة عامة على المنصة</span>
-        </h1>
+        <div>
+            <h1 class="welcome-header">
+                مرحباً، {{ Auth::user()->name }}
+                <span class="welcome-subtitle">{{ Auth::user()->hasRole('admin') ? 'نظرة عامة على أداء المنصة' : 'نظرة عامة على دوراتك وأدائك' }}</span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-2">
+            @if(Auth::user()->hasRole('teacher'))
+            <a href="/teacher/courses/create" class="btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>دورة جديدة</span>
+            </a>
+            @endif
+            @if(Auth::user()->hasRole('admin'))
+            <a href="/admin/reports" class="btn-secondary">
+                <i class="fas fa-chart-bar"></i>
+                <span>التقارير</span>
+            </a>
+            @endif
+        </div>
     </div>
 
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <div class="stat-card-gradient-primary">
             <div class="stat-label"><i class="fas fa-users"></i> {{ Auth::user()->hasRole('admin') ? 'إجمالي المستخدمين' : 'إجمالي الطلاب' }}</div>
             <div class="stat-value">{{ Auth::user()->hasRole('admin') ? $stats['total_users'] : ($stats['total_students'] ?? 0) }}</div>
@@ -41,11 +57,11 @@
 
     @if(Auth::user()->hasRole('admin'))
     <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <!-- Revenue Chart -->
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-chart-line text-emerald-500"></i>
                     الإيرادات الشهرية
                 </h3>
@@ -60,7 +76,7 @@
         <!-- User Growth Chart -->
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-chart-bar text-blue-500"></i>
                     نمو المستخدمين
                 </h3>
@@ -75,12 +91,12 @@
     @endif
 
     <!-- Recent Activity -->
-    <div class="grid grid-cols-1 {{ Auth::user()->hasRole('admin') ? 'lg:grid-cols-2' : '' }} gap-6">
+    <div class="grid grid-cols-1 {{ Auth::user()->hasRole('admin') ? 'lg:grid-cols-2' : '' }} gap-5">
         @if(Auth::user()->hasRole('admin'))
         <!-- Recent Transactions -->
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-exchange-alt text-emerald-500"></i>
                     آخر المعاملات
                 </h3>
@@ -103,7 +119,7 @@
                             <tr>
                                 <td>
                                     <div class="flex items-center gap-2">
-                                        <div class="avatar bg-brand-100 text-brand text-xs">
+                                        <div class="avatar bg-brand-50 text-brand text-xs">
                                             <i class="fas fa-user"></i>
                                         </div>
                                         <span class="font-medium text-gray-800">{{ $transaction->user->name }}</span>
@@ -138,7 +154,7 @@
         <!-- Pending Courses -->
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-exclamation-triangle text-amber-500"></i>
                     الدورات قيد المراجعة
                 </h3>
@@ -184,7 +200,7 @@
         <!-- Recent Students (Teacher View) -->
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-user-graduate text-emerald-500"></i>
                     آخر الطلاب المسجلين
                 </h3>
@@ -204,7 +220,7 @@
                             <tr>
                                 <td>
                                     <div class="flex items-center gap-2">
-                                        <div class="avatar bg-brand-100 text-brand text-xs">
+                                        <div class="avatar bg-brand-50 text-brand text-xs">
                                             <i class="fas fa-user-graduate"></i>
                                         </div>
                                         <span class="font-medium text-gray-800">{{ $enrollment->student_name }}</span>

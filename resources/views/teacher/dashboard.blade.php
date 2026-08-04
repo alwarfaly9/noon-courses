@@ -3,14 +3,19 @@
 @section('content')
 <div class="space-y-6">
     <div class="page-header">
-        <h1 class="welcome-header">
-            مرحباً، {{ Auth::user()->name }}
-            <span class="welcome-subtitle">نظرة عامة على أدائك</span>
-        </h1>
+        <div>
+            <h1 class="welcome-header">
+                مرحباً، {{ Auth::user()->name }}
+                <span class="welcome-subtitle">نظرة عامة على أدائك</span>
+            </h1>
+        </div>
+        <a href="{{ route('teacher.courses.create') }}" class="btn-primary">
+            <i class="fas fa-plus"></i> دورة جديدة
+        </a>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5">
         <div class="stat-card-mini">
             <div class="flex items-center justify-between mb-3">
                 <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
@@ -18,7 +23,7 @@
                 </div>
             </div>
             <div class="stat-label">إجمالي الدورات</div>
-            <div class="stat-value text-brand">{{ $totalCourses }}</div>
+            <div class="stat-value">{{ $totalCourses }}</div>
         </div>
         <div class="stat-card-mini">
             <div class="flex items-center justify-between mb-3">
@@ -67,13 +72,10 @@
 
     <!-- Quick Actions -->
     <div class="flex gap-3 flex-wrap">
-        <a href="{{ route('teacher.courses.create') }}" class="btn-primary">
-            <i class="fas fa-plus"></i> إضافة دورة جديدة
-        </a>
         <a href="{{ route('teacher.withdraw-requests') }}" class="btn-success">
             <i class="fas fa-money-bill-wave"></i> طلب سحب الأرباح
         </a>
-        <a href="{{ route('teacher.certificates') }}" class="btn" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: #fff;">
+        <a href="{{ route('teacher.certificates') }}" class="btn-secondary">
             <i class="fas fa-certificate"></i> الشهادات
         </a>
     </div>
@@ -82,7 +84,7 @@
     @if(isset($earningsData) && $earningsData->count() > 0)
     <div class="card">
         <div class="card-header">
-            <h3 class="font-bold flex items-center gap-2">
+            <h3 class="card-title">
                 <i class="fas fa-chart-line text-emerald-500"></i>
                 الأرباح الشهرية (آخر 6 أشهر)
             </h3>
@@ -96,7 +98,7 @@
     @endif
 
     <!-- Rating Summary + Recent Enrollments -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         @if($avgRating)
         <div class="card">
             <div class="card-body flex items-center gap-5">
@@ -119,7 +121,7 @@
         @if($recentEnrollments->count())
         <div class="card lg:col-span-2">
             <div class="card-header">
-                <h3 class="font-bold flex items-center gap-2">
+                <h3 class="card-title">
                     <i class="fas fa-user-graduate text-brand"></i>
                     آخر الاشتراكات
                 </h3>
@@ -139,7 +141,7 @@
                             <tr>
                                 <td>
                                     <div class="flex items-center gap-2">
-                                        <div class="avatar bg-brand-100 text-brand text-xs">
+                                        <div class="avatar bg-brand-50 text-brand text-xs">
                                             <i class="fas fa-user-graduate"></i>
                                         </div>
                                         <span class="font-medium text-gray-800">{{ $enrollment->student->name ?? '—' }}</span>
