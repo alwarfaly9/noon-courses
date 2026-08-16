@@ -47,16 +47,30 @@ class CourseController extends Controller
             ->where('status', 'published')
             ->avg('rating');
 
-        // Monthly earnings chart (last 6 months)
-        $earningsData = Transaction::selectRaw(
+        // Monthly earnings chart (last 6 months), zero-filled
+        $earningsByMonth = Transaction::selectRaw(
                 "DATE_FORMAT(created_at, '%Y-%m') as month, SUM(instructor_earnings) as total"
             )
             ->where('status', 'completed')
             ->whereHas('course', fn($q) => $q->where('teacher_id', $teacherId))
-            ->where('created_at', '>=', now()->subMonths(6))
+            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderBy('month')
-            ->get();
+            ->get()
+            ->keyBy('month');
+
+        $months = [];
+        $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $key = $date->format('Y-m');
+            $months[] = [
+                'month' => $names[(int) $date->format('n') - 1] . ' ' . $date->format('Y'),
+                'total' => (float) ($earningsByMonth[$key]->total ?? 0),
+            ];
+        }
+        $earningsData = collect($months);
 
         // Certificates issued for courses
         $certificatesCount = Certificate::whereIn('course_id', $courseIds)->count();

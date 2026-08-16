@@ -116,6 +116,16 @@
                         </thead>
                         <tbody>
                             @forelse($recentTransactions as $transaction)
+                            @php
+                                $statusMap = [
+                                    'completed' => 'مكتملة',
+                                    'pending' => 'قيد الانتظار',
+                                    'failed' => 'فاشلة',
+                                    'refunded' => 'مستردة',
+                                    'cancelled' => 'ملغاة',
+                                ];
+                                $statusLabel = $statusMap[$transaction->status] ?? $transaction->status;
+                            @endphp
                             <tr>
                                 <td>
                                     <div class="flex items-center gap-2">
@@ -125,11 +135,11 @@
                                         <span class="font-medium text-gray-800">{{ $transaction->user->name }}</span>
                                     </div>
                                 </td>
-                                <td class="font-semibold text-emerald-600">{{ $transaction->amount }} د.ل</td>
+                                <td class="font-semibold text-emerald-600">{{ number_format($transaction->amount, 0) }} د.ل</td>
                                 <td>
                                     <span class="{{ $transaction->status === 'completed' ? 'badge-success' : 'badge-warning' }}">
                                         <i class="fas fa-{{ $transaction->status === 'completed' ? 'check' : 'clock' }}"></i>
-                                        {{ $transaction->status === 'completed' ? 'مكتملة' : $transaction->status }}
+                                        {{ $statusLabel }}
                                     </span>
                                 </td>
                             </tr>

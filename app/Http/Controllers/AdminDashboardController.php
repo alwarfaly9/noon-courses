@@ -34,18 +34,30 @@ class AdminDashboardController extends Controller
             ];
         });
 
-        // Revenue chart data (MySQL compatible)
-        $revenueData = Transaction::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(amount) as total')
+        // Revenue chart data (MySQL compatible), zero-filled over the last 12 months
+        $revenueByMonth = Transaction::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(amount) as total')
             ->where('status', 'completed')
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupByRaw('DATE_FORMAT(created_at, "%Y-%m")')
             ->orderBy('month', 'asc')
-            ->get();
+            ->get()
+            ->keyBy('month');
 
-        // User growth chart data (MySQL compatible)
-        $userData = User::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+        $revenueData = collect($this->chartMonths(12))->map(function ($label, $month) use ($revenueByMonth) {
+            return ['month' => $label, 'total' => (float) ($revenueByMonth[$month]->total ?? 0)];
+        })->values();
+
+        // User growth chart data (MySQL compatible), zero-filled over the last 12 months
+        $userByMonth = User::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupByRaw('DATE_FORMAT(created_at, "%Y-%m")')
             ->orderBy('month', 'asc')
-            ->get();
+            ->get()
+            ->keyBy('month');
+
+        $userData = collect($this->chartMonths(12))->map(function ($label, $month) use ($userByMonth) {
+            return ['month' => $label, 'count' => (int) ($userByMonth[$month]->count ?? 0)];
+        })->values();
 
         // Recent transactions
         $recentTransactions = Transaction::with('user')
@@ -61,6 +73,23 @@ class AdminDashboardController extends Controller
             ->get();
 
         return view('admin.dashboard', compact('stats', 'revenueData', 'userData', 'recentTransactions', 'pendingCourses'));
+    }
+
+    private function chartMonths(int $count): array
+    {
+        $months = [];
+        for ($i = $count - 1; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $months[$date->format('Y-m')] = $this->arabicMonthLabel($date);
+        }
+        return $months;
+    }
+
+    private function arabicMonthLabel(\Carbon\CarbonInterface $date): string
+    {
+        $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        return $names[(int) $date->format('n') - 1] . ' ' . $date->format('Y');
     }
 
     private function teacherDashboard($user)
