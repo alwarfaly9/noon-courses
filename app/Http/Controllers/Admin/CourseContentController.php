@@ -99,7 +99,7 @@ class CourseContentController extends Controller
         $lesson = CourseLesson::with('course')->findOrFail($lessonId);
         $request->validate(FileUploadService::getLessonValidationRules());
 
-        $disk = Storage::disk('private');
+        $disk = Storage::disk(FileUploadService::DISK_R2);
         $folder = 'courses/' . $lesson->course_id . '/lessons/' . $lesson->id;
 
         if ($request->hasFile('file')) {
@@ -149,7 +149,7 @@ class CourseContentController extends Controller
      */
     private function handleLessonFiles(Request $request, CourseLesson $lesson, int $courseId): void
     {
-        $disk = Storage::disk('private');
+        $disk = Storage::disk(FileUploadService::DISK_R2);
         $folder = 'courses/' . $courseId . '/lessons/' . $lesson->id;
 
         if ($request->hasFile('video_file')) {

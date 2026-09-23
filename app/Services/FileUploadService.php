@@ -24,6 +24,10 @@ class FileUploadService
     const ALLOWED_SUBTITLE_EXTENSIONS = ['vtt', 'srt', 'txt'];
     const MAX_SUBTITLE_SIZE = 10240;
 
+    public const DISK_PRIVATE = 'private';
+    public const DISK_R2 = 'r2';
+    public const DISK_PUBLIC = 'public';
+
     public static function validateVideo(UploadedFile $file): bool
     {
         $extension = strtolower($file->getClientOriginalExtension());
@@ -83,9 +87,19 @@ class FileUploadService
         ];
     }
 
-    public static function store(UploadedFile $file, string $path, string $disk = 'private'): string
+    public static function store(UploadedFile $file, string $path, string $disk = self::DISK_PRIVATE): string
     {
         return Storage::disk($disk)->putFile($path, $file);
+    }
+
+    public static function delete(string $path, string $disk = self::DISK_PRIVATE): bool
+    {
+        return Storage::disk($disk)->delete($path);
+    }
+
+    public static function exists(string $path, string $disk = self::DISK_PRIVATE): bool
+    {
+        return Storage::disk($disk)->exists($path);
     }
 
     public static function isVideo(UploadedFile $file): bool

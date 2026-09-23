@@ -2,25 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Credit;
-use Spatie\Permission\Models\Role;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
+use App\Mail\PasswordResetMail;
 use App\Models\ActivityLog;
+use App\Models\Credit;
+use App\Models\User;
+use App\Services\AuthService;
+use App\Services\OtpService;
+use App\Services\ProfileService;
 use App\Services\ReferralService;
 use Illuminate\Http\Request;
-use App\Http\Requests\RegisterRequest;
-use App\Http\Requests\LoginRequest;
-use App\Services\AuthService;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OtpService;
-use App\Services\ProfileService;
-use App\Http\Resources\UserResource;
-use App\Mail\PasswordResetMail;
+use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -32,11 +33,12 @@ class AuthController extends Controller
         // verifyOtp() stores a short-lived flag after successful verification.
         // Registration is rejected if the flag is absent.
         $verifiedKey = "email_otp_verified:{$email}";
-        if (!Cache::get($verifiedKey)) {
+        if (! Cache::get($verifiedKey)) {
             Log::warning('[Register] Attempt without prior OTP verification', [
                 'email' => $email,
-                'ip'    => $request->ip(),
+                'ip' => $request->ip(),
             ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Email must be verified via OTP before registering',
@@ -47,14 +49,14 @@ class AuthController extends Controller
             'ip' => $request->ip(),
         ]);
 
-        $user = (new User())->forceFill([
-            'name'              => $request->name,
-            'email'             => $email,
-            'password'          => bcrypt($request->password),
-            'phone'             => $request->phone,
+        $user = (new User)->forceFill([
+            'name' => $request->name,
+            'email' => $email,
+            'password' => bcrypt($request->password),
+            'phone' => $request->phone,
             'email_verified_at' => now(),
-            'is_verified'       => true,
-            'is_active'         => true,
+            'is_verified' => true,
+            'is_active' => true,
         ]);
         $user->save();
 
@@ -77,12 +79,12 @@ class AuthController extends Controller
 
         // Log activity
         ActivityLog::create([
-            'user_id'     => $user->id,
-            'action'      => 'register',
-            'model_type'  => 'User',
-            'model_id'    => $user->id,
+            'user_id' => $user->id,
+            'action' => 'register',
+            'model_type' => 'User',
+            'model_id' => $user->id,
             'description' => 'User registered successfully',
-            'ip_address'  => $request->ip(),
+            'ip_address' => $request->ip(),
         ]);
 
         // Track referral if a code was provided at registration
@@ -101,18 +103,18 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'User registered successfully',
             'data' => [
-                'user'          => $userData,
-                'access_token'  => $tokenPair['access_token'],
+                'user' => $userData,
+                'access_token' => $tokenPair['access_token'],
                 'refresh_token' => $tokenPair['refresh_token'],
-                'token_type'    => $tokenPair['token_type'],
-                'expires_in'    => $tokenPair['expires_in'],
-            ]
+                'token_type' => $tokenPair['token_type'],
+                'expires_in' => $tokenPair['expires_in'],
+            ],
         ], 201);
     }
 
     public function login(LoginRequest $request)
     {
-        $email    = strtolower(trim($request->email));
+        $email = strtolower(trim($request->email));
         $password = $request->password;
 
         Log::info('[Login] Attempt', [
@@ -121,18 +123,20 @@ class AuthController extends Controller
 
         $user = User::where('email', $email)->first();
 
-        if (!$user || !$user->is_active) {
+        if (! $user || ! $user->is_active || $user->deleted_at !== null) {
             if ($user) {
                 Log::warning('[Login] Account disabled', ['user_id' => $user->id]);
             }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
-        if (!Hash::check($password, $user->password)) {
+        if (! Hash::check($password, $user->password)) {
             Log::warning('[Login] Password mismatch', ['user_id' => $user->id]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
@@ -169,12 +173,12 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user'          => $userData,
-                'access_token'  => $tokenPair['access_token'],
+                'user' => $userData,
+                'access_token' => $tokenPair['access_token'],
                 'refresh_token' => $tokenPair['refresh_token'],
-                'token_type'    => $tokenPair['token_type'],
-                'expires_in'    => $tokenPair['expires_in'],
-            ]
+                'token_type' => $tokenPair['token_type'],
+                'expires_in' => $tokenPair['expires_in'],
+            ],
         ]);
     }
 
@@ -190,7 +194,7 @@ class AuthController extends Controller
 
         // Also revoke associated refresh token for this device
         $request->user()->tokens()
-            ->where('name', 'LIKE', $deviceName . '_refresh_%')
+            ->where('name', 'LIKE', $deviceName.'_refresh_%')
             ->where('id', '!=', $token?->id)
             ->delete();
 
@@ -199,13 +203,13 @@ class AuthController extends Controller
             'action' => 'logout',
             'model_type' => 'User',
             'model_id' => $request->user()->id,
-            'description' => 'User logged out from device: ' . $deviceName,
+            'description' => 'User logged out from device: '.$deviceName,
             'ip_address' => $request->ip(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
     }
 
@@ -228,11 +232,11 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'access_token'  => $tokenPair['access_token'],
+                'access_token' => $tokenPair['access_token'],
                 'refresh_token' => $tokenPair['refresh_token'],
-                'token_type'    => $tokenPair['token_type'],
-                'expires_in'    => $tokenPair['expires_in'],
-            ]
+                'token_type' => $tokenPair['token_type'],
+                'expires_in' => $tokenPair['expires_in'],
+            ],
         ]);
     }
 
@@ -244,20 +248,19 @@ class AuthController extends Controller
                 return substr($tokenName, 0, $pos);
             }
         }
+
         return $tokenName;
     }
 
     public function user(Request $request)
     {
         $user = $request->user()->load('roles', 'credits');
-        
-        // Add wallet_balance attribute manually if not using API Resource
-        $userData = $user->toArray();
-        $userData['wallet_balance'] = $user->credits ? $user->credits->balance : 0;
+
+        $userData = new UserResource($user);
 
         return response()->json([
             'success' => true,
-            'data' => $userData
+            'data' => $userData,
         ]);
     }
 
@@ -273,13 +276,13 @@ class AuthController extends Controller
                 'message' => 'Profile updated successfully',
                 'data' => [
                     'user' => $userData,
-                ]
+                ],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         }
     }
@@ -301,7 +304,7 @@ class AuthController extends Controller
         $email = $request->email;
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => true,
                 'message' => 'إذا كان البريد الإلكتروني مسجلاً، سيتم إرسال رمز إعادة التعيين',
@@ -318,7 +321,7 @@ class AuthController extends Controller
         try {
             Mail::to($email)->queue(new PasswordResetMail($code));
         } catch (\Exception $e) {
-            Log::error('[PasswordReset] Failed to send email: ' . $e->getMessage());
+            Log::error('[PasswordReset] Failed to send email: '.$e->getMessage());
         }
 
         return response()->json([
@@ -330,9 +333,9 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'                 => 'required|email',
-            'code'                  => 'required|string|size:6',
-            'password'              => 'required|string|min:8|confirmed',
+            'email' => 'required|email',
+            'code' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string',
         ]);
 
@@ -348,7 +351,7 @@ class AuthController extends Controller
             ->where('email', $request->email)
             ->first();
 
-        if (!$record) {
+        if (! $record) {
             return response()->json([
                 'success' => false,
                 'message' => 'الرمز غير صحيح',
@@ -357,13 +360,14 @@ class AuthController extends Controller
 
         if (now()->diffInMinutes($record->created_at) > 15) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'الرمز غير صحيح',
             ], 400);
         }
 
-        if (!Hash::check($request->code, $record->token)) {
+        if (! Hash::check($request->code, $record->token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'الرمز غير صحيح',
@@ -371,8 +375,9 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
-        if (!$user) {
+        if (! $user) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'الرمز غير صحيح',
@@ -395,9 +400,10 @@ class AuthController extends Controller
     {
         try {
             $otpService->sendOtp($request->all());
+
             return response()->json([
                 'success' => true,
-                'message' => 'OTP sent successfully'
+                'message' => 'OTP sent successfully',
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -411,6 +417,7 @@ class AuthController extends Controller
     {
         try {
             $otpService->verifyOtp($request->all());
+
             return response()->json([
                 'success' => true,
                 'message' => 'OTP verified',

@@ -14,6 +14,7 @@ use App\Services\NotificationService;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\FileUploadService;
 
 class CourseService
 {
@@ -165,7 +166,9 @@ class CourseService
             return ['video_url' => $storedPath];
         }
 
-        if (!Storage::disk('private')->exists($storedPath)) {
+        // Check on R2 disk first (new), fallback to private disk (legacy migration)
+        if (!Storage::disk(FileUploadService::DISK_R2)->exists($storedPath)
+            && !Storage::disk(FileUploadService::DISK_PRIVATE)->exists($storedPath)) {
             abort(404, 'Video file is missing from storage');
         }
 

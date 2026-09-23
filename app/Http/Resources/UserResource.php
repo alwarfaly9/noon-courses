@@ -26,6 +26,7 @@ class UserResource extends JsonResource
             'location' => $this->location,
             'onboarding_completed' => $this->onboarding_completed,
             'is_verified' => $this->is_verified,
+            'wallet_balance' => $this->whenLoaded('credits', fn () => $this->credits->balance, 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

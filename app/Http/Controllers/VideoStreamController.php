@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CourseEnrollment;
 use App\Models\CourseLesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\FileUploadService;
 
 /**
  * VideoStreamController
@@ -42,7 +44,7 @@ class VideoStreamController extends Controller
         // ── 1. Validate token ───────────────────────────────────────────────
         $token = $request->query('token');
 
-        if (!$token) {
+        if (! $token) {
             return response()->json([
                 'success' => false,
                 'message' => 'Missing stream token',
@@ -79,12 +81,24 @@ class VideoStreamController extends Controller
             ], 403);
         }
 
-        // ── 4. Resolve file path ────────────────────────────────────────────
-        /** @var CourseLesson $lesson */
+        // ── 3.5 Verify enrollment in the course that owns this lesson ──────
         $lesson = CourseLesson::findOrFail($lessonId);
+        $isEnrolled = CourseEnrollment::where('student_id', $payload['user_id'] ?? 0)
+            ->where('course_id', $lesson->course_id)
+            ->whereIn('status', ['enrolled', 'completed'])
+            ->exists();
+
+        if (! $isEnrolled && ! $lesson->is_preview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not enrolled in this course',
+            ], 403);
+        }
+
+        // ── 4. Resolve file path ────────────────────────────────────
         $storedPath = $lesson->content_url ?: $lesson->content_file;
 
-        if (!$storedPath) {
+        if (! $storedPath) {
             return response()->json([
                 'success' => false,
                 'message' => 'No video attached to this lesson',
@@ -97,14 +111,19 @@ class VideoStreamController extends Controller
         }
 
         // ── 5. Verify file exists on the private disk ───────────────────────
-        if (!Storage::disk('private')->exists($storedPath)) {
+        $r2Disk = Storage::disk(FileUploadService::DISK_R2);
+        $privateDisk = Storage::disk(FileUploadService::DISK_PRIVATE);
+
+        if (! $r2Disk->exists($storedPath) && ! $privateDisk->exists($storedPath)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Video file not found',
             ], 404);
         }
 
-        $filePath = storage_path('app/private/' . ltrim($storedPath, '/'));
+        // Use R2 if available, fallback to private disk for legacy files
+        $disk = $r2Disk->exists($storedPath) ? $r2Disk : $privateDisk;
+        $filePath = $disk->path($storedPath);
 
         // ── 6. Handle OPTIONS pre-flight (for web) ──────────────────────────
         if ($request->isMethod('OPTIONS')) {
@@ -123,15 +142,15 @@ class VideoStreamController extends Controller
      */
     private function buildStreamResponse(Request $request, string $filePath): StreamedResponse
     {
-        $fileSize  = (int) filesize($filePath);
-        $mimeType  = $this->detectMimeType($filePath);
+        $fileSize = (int) filesize($filePath);
+        $mimeType = $this->detectMimeType($filePath);
         $rangeHeader = $request->header('Range');
 
         if ($rangeHeader && preg_match('/bytes=(\d+)-(\d*)/', $rangeHeader, $m)) {
             // ── Partial Content (206) ───────────────────────────────────────
             $start = (int) $m[1];
-            $end   = ($m[2] !== '') ? (int) $m[2] : $fileSize - 1;
-            $end   = min($end, $fileSize - 1);
+            $end = ($m[2] !== '') ? (int) $m[2] : $fileSize - 1;
+            $end = min($end, $fileSize - 1);
 
             if ($start > $end || $start >= $fileSize) {
                 // 416 Range Not Satisfiable
@@ -148,27 +167,29 @@ class VideoStreamController extends Controller
 
             return new StreamedResponse(
                 function () use ($filePath, $start, $chunkSize) {
-                    $handle    = fopen($filePath, 'rb');
+                    $handle = fopen($filePath, 'rb');
                     fseek($handle, $start);
                     $remaining = $chunkSize;
-                    while (!feof($handle) && $remaining > 0) {
-                        $read       = min(self::BUFFER_SIZE, $remaining);
-                        $data       = fread($handle, $read);
+                    while (! feof($handle) && $remaining > 0) {
+                        $read = min(self::BUFFER_SIZE, $remaining);
+                        $data = fread($handle, $read);
                         $remaining -= strlen($data);
                         echo $data;
-                        if (ob_get_level()) ob_flush();
+                        if (ob_get_level()) {
+                            ob_flush();
+                        }
                         flush();
                     }
                     fclose($handle);
                 },
                 206,
                 array_merge($this->corsHeaders(), [
-                    'Content-Type'        => $mimeType,
-                    'Content-Length'      => $chunkSize,
-                    'Content-Range'       => "bytes {$start}-{$end}/{$fileSize}",
-                    'Accept-Ranges'       => 'bytes',
+                    'Content-Type' => $mimeType,
+                    'Content-Length' => $chunkSize,
+                    'Content-Range' => "bytes {$start}-{$end}/{$fileSize}",
+                    'Accept-Ranges' => 'bytes',
                     'Content-Disposition' => 'inline',
-                    'Cache-Control'       => 'no-cache, no-store',
+                    'Cache-Control' => 'no-cache, no-store',
                 ])
             );
         }
@@ -177,20 +198,22 @@ class VideoStreamController extends Controller
         return new StreamedResponse(
             function () use ($filePath) {
                 $handle = fopen($filePath, 'rb');
-                while (!feof($handle)) {
+                while (! feof($handle)) {
                     echo fread($handle, self::BUFFER_SIZE);
-                    if (ob_get_level()) ob_flush();
+                    if (ob_get_level()) {
+                        ob_flush();
+                    }
                     flush();
                 }
                 fclose($handle);
             },
             200,
             array_merge($this->corsHeaders(), [
-                'Content-Type'        => $mimeType,
-                'Content-Length'      => $fileSize,
-                'Accept-Ranges'       => 'bytes',
+                'Content-Type' => $mimeType,
+                'Content-Length' => $fileSize,
+                'Accept-Ranges' => 'bytes',
                 'Content-Disposition' => 'inline',
-                'Cache-Control'       => 'no-cache, no-store',
+                'Cache-Control' => 'no-cache, no-store',
             ])
         );
     }
@@ -199,12 +222,12 @@ class VideoStreamController extends Controller
     private function detectMimeType(string $filePath): string
     {
         return match (strtolower(pathinfo($filePath, PATHINFO_EXTENSION))) {
-            'mp4'  => 'video/mp4',
+            'mp4' => 'video/mp4',
             'webm' => 'video/webm',
-            'ogg'  => 'video/ogg',
-            'mov'  => 'video/quicktime',
-            'mkv'  => 'video/x-matroska',
-            'avi'  => 'video/x-msvideo',
+            'ogg' => 'video/ogg',
+            'mov' => 'video/quicktime',
+            'mkv' => 'video/x-matroska',
+            'avi' => 'video/x-msvideo',
             default => 'application/octet-stream',
         };
     }
@@ -213,10 +236,10 @@ class VideoStreamController extends Controller
     private function corsHeaders(): array
     {
         return [
-            'Access-Control-Allow-Origin'  => config('app.url'),
+            'Access-Control-Allow-Origin' => config('app.url'),
             'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
             'Access-Control-Allow-Headers' => 'Range, Content-Type, Authorization',
-            'Access-Control-Expose-Headers'=> 'Content-Range, Content-Length, Accept-Ranges',
+            'Access-Control-Expose-Headers' => 'Content-Range, Content-Length, Accept-Ranges',
         ];
     }
 }
