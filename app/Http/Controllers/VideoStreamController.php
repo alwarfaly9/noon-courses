@@ -121,9 +121,14 @@ class VideoStreamController extends Controller
             ], 404);
         }
 
-        // Use R2 if available, fallback to private disk for legacy files
-        $disk = $r2Disk->exists($storedPath) ? $r2Disk : $privateDisk;
-        $filePath = $disk->path($storedPath);
+        // If file exists on R2, redirect to temporary signed URL
+        if ($r2Disk->exists($storedPath)) {
+            $url = $r2Disk->temporaryUrl($storedPath, now()->addMinutes(10));
+            return redirect()->temporaryRedirect($url);
+        }
+
+        // Fallback to private disk for legacy files
+        $filePath = $privateDisk->path($storedPath);
 
         // ── 6. Handle OPTIONS pre-flight (for web) ──────────────────────────
         if ($request->isMethod('OPTIONS')) {
